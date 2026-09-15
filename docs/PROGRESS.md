@@ -20,6 +20,133 @@
 
 ---
 
+## Mantenimiento previo a Fase 5 — limpieza de Supabase + auditoría del área admin/tienda
+
+```text
+TAREA: Mantenimiento (no es Fase 5) — limpieza segura de datos de benchmark de
+       Fase 3 + auditoría del área admin/tienda actual (F1-F4). Ver
+       docs/DASHBOARD-AUDIT.md para el detalle de la auditoría del área
+       admin/tienda.
+ESTADO: COMPLETA. Base de datos limpia y verificada; auditoría del área
+        admin/tienda hecha (código + queries + permisos), con 1 bug de UX
+        real corregido. Sigue sobre la cuota gratuita (ver RIESGOS) — no se
+        inventa que esto se resolvió.
+
+DIAGNÓSTICO (antes de borrar nada):
+- Tamaño real (pg_database_size): 791 MB. Métrica de cuota del dashboard:
+  0,844 GB / 0,5 GB (169%).
+- Top consumidores: audit_logs 529 MB (915.336 filas), serials 159 MB
+  (65.000 filas), serial_import_rows 90 MB (0 filas vivas, solo bloat de
+  índice sin purgar con VACUUM).
+- 100% de products/lots/serials/serial_imports vivos en la base eran
+  sintéticos de los benchmarks de Fase 3 (códigos BENCH-*, archivos
+  bench-100k.csv/bench-300k.csv/etc.) — verificado fila por fila, no
+  estimado. Se encontró además `_bench_log` (58 filas), una tabla ad-hoc de
+  timing creada a mano durante los benchmarks, sin existir en ninguna
+  migración ni referenciarse en el código (confirmado con grep).
+- audit_logs: el 99,96% de sus filas (915.008 de 915.336) son
+  insert/delete de "serials" — el rastro de crear y borrar ~915.000
+  seriales sintéticos durante los benchmarks (no solo los 65.000 que
+  quedaban vivos). El resto (~328 filas) es historial operativo real.
+- Único dato real/no-sintético en toda la base: 1 perfil (el admin), 1 fila
+  de app_settings, 1 fila de notification_settings. Cero tiendas,
+  productos, lotes o seriales reales existían antes de esta limpieza.
+
+LIMPIEZA EJECUTADA (con el plan presentado y aprobado antes de borrar):
+- DELETE en orden por FKs: serials (65.000) → serial_imports (4) → lots (3)
+  → products (3) → _bench_log (58). audit_logs NO se tocó (append-only,
+  bloqueado por trigger incluso para service_role, y por instrucción
+  explícita del usuario).
+- VACUUM FULL ANALYZE en serials, serial_import_rows, serial_imports, lots,
+  products, _bench_log y stores (statement por statement — VACUUM no puede
+  ir dentro de una transacción con otros comandos).
+- Ejecutado vía el SQL Editor del dashboard de Supabase (no
+  `supabase db push`/`test db`: el CLI sigue sin poder conectarse a la base
+  desde esta red — ver checkpoint de Fase 4).
+
+STORAGE:
+  ANTES:      791 MB (pg_database_size); dashboard: 0,844 GB / 0,5 GB (169%)
+  DESPUÉS:    576 MB (pg_database_size)
+  RECUPERADO: 215 MB
+  CUOTA:      Sigue por encima del límite de 500 MB del plan gratuito.
+  ESTADO:     NO resuelto del todo — audit_logs por sí sola (564 MB tras la
+              limpieza; creció ~35 MB porque las 65.010 filas borradas se
+              auditaron a sí mismas, correctamente) ya supera la cuota
+              completa. No hay ninguna limpieza legítima de audit_logs
+              disponible (es append-only por diseño); la única forma real
+              de quedar bajo cuota es subir de plan cuando el usuario lo
+              decida — no se presenta esto como urgente ni como único
+              camino, solo como el hecho real tras la limpieza.
+
+INTEGRIDAD VERIFICADA DESPUÉS:
+- profiles=1, stores=0, app_settings=1, notification_settings=1 (todos los
+  datos reales intactos).
+- products=0, lots=0, serials=0, serial_imports=0 (limpieza completa,
+  verificado por conteo, no solo por el mensaje de éxito del DELETE).
+- audit_logs=980.634 (crece correctamente, nunca se tocó).
+- lint, typecheck: PASS. Build y Vitest: ver TESTS abajo. No se re-corrió
+  pgTAP contra la base real en este mantenimiento: no se modificó ninguna
+  migración, función ni política — el riesgo de regresión de borrar filas
+  de datos (no de esquema) sobre las suites existentes es nulo, y cada
+  suite pgTAP ya trae su propio fixture en una transacción con rollback.
+
+AUDITORÍA DEL ÁREA ADMIN/TIENDA (ver docs/DASHBOARD-AUDIT.md, detalle completo):
+- No existe todavía un "dashboard" con KPIs — es trabajo de la Fase 9 por
+  diseño original, no un hallazgo de esta auditoría. Lo que se auditó es
+  el área real: shells, nav, y las 8 pantallas funcionales de F1-F4.
+- Sin datos falsos/hardcodeados/placeholders (grep explícito, cero
+  coincidencias en código de producción).
+- Sin fugas de permisos encontradas (autorización real en proxy.ts + RLS,
+  no en ocultar botones — verificado leyendo el código).
+- Estados loading/error/empty correctos en todas las pantallas nuevas;
+  tablas con scroll horizontal contenido (no rompen el layout en móvil).
+- Responsive verificado por código (sidebar/hamburguesa con media queries
+  reales), NO verificado visualmente en vivo esta vez — el navegador
+  controlado se volvió inestable a mitad de sesión y no había forma de
+  probar las pantallas autenticadas sin pedir la contraseña real del admin
+  (regla que este proyecto no permite). Queda como pendiente honesto.
+- **1 bug real de UX encontrado y corregido**: `/admin/vendedores` no tenía
+  buscador por nombre, a diferencia de `/admin/productos` y
+  `/admin/tiendas`. Se agregó el campo de búsqueda (`ilike` sobre
+  `full_name`) y se diferenció el `EmptyState` de "sin resultados" vs.
+  "todavía no hay vendedores", igual que ya hacían las otras pantallas.
+
+TESTS:
+- Lint: PASS.
+- Typecheck: PASS (antes y después del fix de vendedores).
+- Build (`next build`): PASS — las 24 rutas compilan, incluidas las 4
+  nuevas de F4 (`/admin/tiendas`, `/admin/tiendas/[id]`,
+  `/admin/vendedores`, `/admin/vendedores/[id]`).
+- Vitest: PASS — 47/47 (sin cambios respecto al checkpoint de Fase 4; el
+  fix de búsqueda en vendedores no tiene lógica nueva que testear más allá
+  de lo que ya cubre `lib/validation/sellers.test.ts`).
+
+DECISIÓN (dada por el usuario, documentada para no repetir el patrón):
+No se vuelven a correr benchmarks de 300k/500k/1M contra este proyecto
+Supabase. Los benchmarks de Fase 3 (100k y 300k reales) ya dieron
+evidencia suficiente de que el diseño escala; repetirlos aquí solo vuelve
+a llenar la base gratuita sin aportar información nueva. Si en el futuro
+hace falta un benchmark masivo nuevo, debe ser contra un proyecto/entorno
+dedicado, nunca contra esta base de desarrollo/producción.
+
+RIESGOS:
+- La cuota gratuita sigue excedida por audit_logs sola, incluso con la
+  base completamente limpia de sintéticos — ver STORAGE arriba. No es un
+  riesgo nuevo introducido por este mantenimiento, es el mismo riesgo de
+  Fase 3 ahora medido con precisión y sin margen de limpieza adicional
+  legítimo.
+- Prueba visual en vivo (responsive/modales) del área admin/tienda sigue
+  pendiente — ver docs/DASHBOARD-AUDIT.md, sección 8 (DEFERRED).
+
+SIGUIENTE:
+- Commit pendiente de aprobación explícita del usuario.
+- Decisión del usuario sobre la cuota de Supabase antes de Fase 5 (no
+  bloqueante para seguir trabajando en código, sí relevante para cuánto
+  dato nuevo puede escribir la Fase 5 sin volver a quedarse sin espacio).
+- Fase 5 — Activación de garantías, cuando el usuario lo indique
+  explícitamente.
+```
+
 ## Fase 4 — UI de tiendas y vendedores (checkpoint definitivo)
 
 ```text
