@@ -8,7 +8,7 @@
 |---|---|---|
 | 0 | Auditoría y arquitectura | Completada (2026-09-14) |
 | 1 | Fundación (Supabase, Auth, perfiles, tiendas, RLS, auditoría, layout, design system, testing) | **Completada y verificada contra el proyecto real (2026-09-14)** |
-| 2 | Productos + lotes + seriales | Pendiente |
+| 2 | Productos + lotes + seriales | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 3 | Importación CSV/Excel | Pendiente |
 | 4 | UI de tiendas + vendedores | Pendiente |
 | 5 | Activación de garantías | Pendiente |
@@ -19,6 +19,139 @@
 | 10 | Propiedad intelectual + licencia + documentación final | Pendiente |
 
 ---
+
+## Fase 2 — Productos + lotes + seriales (checkpoint definitivo)
+
+```text
+FASE: 2 — Productos + lotes + seriales
+ESTADO: COMPLETA. Implementada y verificada de punta a punta contra el
+        proyecto Supabase real (eaxzhjodudrshblvcghv) y desde el navegador
+        con el admin real.
+
+COMPLETADO:
+- Revisión previa aprobada por el usuario: docs/PHASE-2-REVIEW.md
+  (verdict: LISTO PARA IMPLEMENTAR), seguida de 4 decisiones definitivas
+  del usuario que fijan el modelo (ver DECISIONES).
+- Migraciones nuevas (versionadas, aplicadas y verificadas una por una):
+  products_and_lots, serials, serials_rpc, phase2_rls, serials_fk_index.
+- `products`/`lots`: catálogo de escritura directa para admin (RLS +
+  trigger de auditoría reutilizado de la Fase 1). `products.code`
+  inmutable tras crear (trigger que lanza excepción). `lots.code` único
+  por producto, no globalmente. `lots.expected_count` informativo, nunca
+  bloquea nada.
+- `serials`: máquina de estados 100% por RPC (`create_serial`,
+  `block_serial`, `unblock_serial`, `void_serial`), sin política de
+  escritura directa para nadie (ni admin). FK compuesta
+  `(lot_id, product_id) → lots(id, product_id)`. Colisión serial↔barcode
+  rechazada en el RPC. Globalmente únicos, sin asignación a tienda
+  (decisión del usuario).
+- RLS: `products`/`lots` admin-todo + seller-select de activos (mismo
+  patrón que `app_settings`); `serials` seller sin acceso, admin
+  select-only (las escrituras solo existen vía RPC).
+- UI real completa: admin (listar/buscar/filtrar/crear/editar/
+  activar-desactivar/detalle de productos y lotes; listar con paginación
+  por keyset/buscar exacto/filtrar/detalle/bloquear/desbloquear/anular de
+  seriales, con confirmación explícita y motivo obligatorio en bloqueo y
+  anulación) y vistas mínimas para vendedor (sin flujo de activación —
+  Fase 5).
+- Tests escritos y corridos: Vitest (esquemas zod de productos/lotes/
+  seriales), pgTAP real contra el proyecto (19 + 24 = 43 tests).
+- Verificación E2E real en el navegador con el admin real (ver TESTS):
+  crear producto, crear lote, editar lote, crear serial, bloquear,
+  desbloquear, anular — cada paso confirmado visualmente y contra
+  `audit_logs` real.
+
+TESTS:
+- Lint (`npm run lint`): PASS.
+- Typecheck (`tsc --noEmit`): PASS.
+- Build (`npm run build`): PASS — todas las rutas nuevas quedan ƒ.
+- Unit (`npx vitest run`): PASS — 31/31 (15 de Fase 1 + 16 nuevos de
+  productos/lotes/seriales).
+- Playwright (regresión de Fase 1, `tests/e2e/login.spec.ts`): PASS —
+  4/4, sin regresión.
+- **pgTAP contra el proyecto real: PASS — 43/43**
+  (`05_products_and_lots.sql` 19/19, `06_serials.sql` 24/24).
+- **Supabase Advisors**: revisados antes y después. Un hallazgo de
+  performance real (`serials_lot_id_product_id_fkey` sin índice) corregido
+  con la migración `serials_fk_index` y reverificado. El resto son
+  hallazgos ya conocidos/esperados de Fase 1 (funciones `SECURITY
+  DEFINER` ejecutables por diseño, `leaked_password_protection`
+  pendiente de Fase 8) — ninguno nuevo introducido por esta fase.
+- **E2E real desde el navegador (admin real, no simulado)**: producto
+  creado (`E2E-001`, normalizado a mayúsculas), lote creado bajo ese
+  producto, serial creado bajo ese lote (normalizado, estado
+  `AVAILABLE`), bloqueado (motivo obligatorio verificado: el formulario
+  rechaza el envío vacío), desbloqueado, anulado (con el diálogo de
+  confirmación explícita y advertencia de irreversibilidad pedidos en el
+  encargo). Cada paso confirmado en `/admin/auditoria` con el actor
+  `admin` real. Datos de prueba borrados de la base al terminar (no son
+  datos de negocio del cliente).
+
+BUGS ENCONTRADOS Y CORREGIDOS (durante la verificación E2E de esta misma
+fase, antes de cerrarla):
+1. **Bug real de datos**: el formulario de creación de lote precargaba
+   `warrantyDays: 365` como valor por defecto en el campo numérico. Un
+   flujo normal (clic en el campo + escribir la duración real) no
+   selecciona el texto precargado, así que el navegador **concatena** en
+   vez de reemplazar (p. ej. escribir "180" sobre "365" da "365180"), y el
+   dato se guarda sin ningún aviso porque `365180` sigue siendo un entero
+   positivo válido para el CHECK. Reproducido en vivo creando un lote real
+   (quedó con 365180 días de garantía). Corregido quitando el valor por
+   defecto (`app/admin/lotes/lot-form.tsx`): el campo ahora empieza vacío
+   y obliga a escribir la duración real. El lote de prueba se corrigió
+   desde la propia UI de edición antes de continuar.
+2. **Bug real de la API**: `/admin/seriales` y `/admin/seriales/[id]`
+   fallaban con `Ocurrió un error` al cargar. Causa: el embed
+   `lots(code)` desde `serials` es ambiguo para PostgREST
+   (`PGRST201` — la FK compuesta `(lot_id, product_id)` crea una segunda
+   relación `serials↔lots` además de la simple `serials.lot_id`, y
+   PostgREST no puede elegir sola). Corregido nombrando la relación
+   explícitamente: `lots!serials_lot_id_fkey(code)` en
+   `app/admin/seriales/page.tsx` y `app/admin/seriales/[id]/page.tsx`.
+   Verificado recargando ambas páginas y con el flujo completo de
+   creación/bloqueo/desbloqueo/anulación después del fix.
+
+Ambos bugs se encontraron usando la UI real como lo haría un admin, no
+solo con datos sintéticos por SQL — confirma el valor de la verificación
+E2E manual además de pgTAP.
+
+RIESGOS:
+- Entorno de desarrollo con ~3.9 GB de RAM totales: el servidor de
+  desarrollo (`next dev --webpack`) se quedó sin memoria una vez durante
+  esta verificación (`Jest worker encountered ... exceeding retry limit`,
+  causado por el pool de workers de compilación de Webpack, no por el
+  código de la aplicación) y tuvo que reiniciarse. No afecta a
+  `next build` (producción) ni a ningún resultado de test — ver el mismo
+  riesgo ya documentado en el checkpoint de Fase 1.
+- `lots.imported_count` se recalcula con una subconsulta en cada
+  INSERT/DELETE de `serials`; correcto para uso administrativo uno-a-uno,
+  pero ineficiente para la inserción masiva de la Fase 3 (documentado en
+  el propio código de la migración; revisar al implementar importación).
+- Riesgo de negocio ya conocido (seriales sin asignar a tienda) sin
+  cambios — ver `docs/SECURITY.md`, "Riesgo de negocio abierto".
+
+DECISIONES (dadas por el usuario antes de implementar, no reabrir):
+1. `lots.code` único por producto (`UNIQUE(product_id, code)`), no
+   globalmente único.
+2. Sin asignación de seriales a tiendas todavía: siguen globalmente
+   únicos; no se agrega `store_id` ni el flujo hasta que sea
+   estrictamente necesario.
+3. `products.code` inmutable tras la creación; cualquier corrección
+   futura deberá ser un flujo administrativo explícito y auditado
+   (no existe todavía — no se pidió para esta fase).
+4. `lots.expected_count` es puramente informativo: nunca bloquea la
+   creación, importación ni uso de un lote.
+
+Explícitamente no implementado en esta fase (fuera del alcance pedido):
+importación CSV/Excel, staging, workers, importación de 100k–1M,
+activación de garantías, correcciones, PDF, email, reclamos, reportes
+técnicos, licencia/propiedad intelectual.
+
+SIGUIENTE:
+- Commit pendiente de aprobación explícita del usuario (no se hace
+  automáticamente al cerrar la fase).
+- Fase 3 — Importación CSV/Excel, cuando el usuario lo indique.
+```
 
 ## Fase 1 — Fundación (checkpoint definitivo)
 

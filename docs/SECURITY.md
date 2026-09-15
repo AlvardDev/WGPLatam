@@ -54,6 +54,8 @@ Toda función crítica (activación, correcciones, reclamos, importación) se re
 
 Esto aplica en particular a `activate_warranty`, `update_warranty_customer`, `request_correction`, `decide_correction`, `void_warranty` y las funciones de importación (`stage_import_rows`, `start_import_commit`, `commit_import_batch`, `cancel_import`).
 
+**Fase 2**: `create_serial`, `block_serial`, `unblock_serial`, `void_serial` — checklist aplicado y verificado (todas re-verifican `private.is_admin()`, `search_path=''`, revoke explícito a `anon`); tests pgTAP intentan cada transición como vendedor y confirman denegación.
+
 ## MFA
 
 - TOTP (Google Authenticator, Authy y similares), gratis en Supabase Auth.
@@ -81,7 +83,7 @@ Los seriales no están asignados a tiendas: cualquier tienda puede activar cualq
 | Fase | Tests |
 |---|---|
 | 1 | Aislamiento de tiendas en `profiles`/`stores`, rol no autoeditable, `anon` denegado, auditoría no borrable |
-| 2 | Vendedor sin acceso a lotes y seriales |
+| 2 | Vendedor sin acceso a lotes y seriales (43 tests pgTAP reales contra el proyecto: normalización, inmutabilidad de `products.code`, unicidad de `lots.code` por producto, FK compuesta, matriz completa de transiciones de `serials`, colisión serial↔barcode, RLS admin/vendedor/anon) |
 | 3 | Vendedor no puede llamar a los RPC de importación; ver casos de prueba de importación en `DATABASE.md` (incluye intentos de doble confirmación y cancelación fuera de tiempo) |
 | 4 | Vendedor desactivado pierde acceso de inmediato |
 | 5 | Activación con tienda derivada del perfil (nunca de un parámetro), fecha del servidor, doble activación imposible, checklist de `SECURITY DEFINER` aplicado a `activate_warranty` |

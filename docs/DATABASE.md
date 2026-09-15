@@ -17,9 +17,9 @@
 |---|---|---|
 | `profiles` | `id` (= `auth.users.id`), `full_name`, `role` (`admin`\|`seller`), `store_id`, `is_active` | CHECK: seller ⇒ `store_id` not null; admin ⇒ null. Creado por trigger sobre `auth.users` desde `raw_app_meta_data` |
 | `stores` | `code` unique, `name`, `address`, `phone`, `country_code`, `timezone`, `is_active` | — |
-| `products` | `code` unique, `name`, `description`, `how_it_works`, `warranty_conditions`, `warranty_exclusions text[]`, `default_warranty_days`, `is_active` | CHECK `default_warranty_days > 0` |
-| `lots` | `product_id`, `code` unique, `warranty_days`, `received_on`, `expected_count`, `imported_count`, `is_active` | unique `(id, product_id)` |
-| `serials` | `serial` unique, `barcode` unique, `lot_id`, `product_id`, `status` (`AVAILABLE`\|`ACTIVATED`\|`BLOCKED`\|`VOID`), `status_reason`, `import_id` | FK compuesta `(lot_id, product_id)` → `lots(id, product_id)`; códigos normalizados por una única función SQL |
+| `products` | `code` unique, `name`, `description`, `how_it_works`, `warranty_conditions`, `warranty_exclusions text[]`, `default_warranty_days`, `is_active` | CHECK `default_warranty_days > 0`. **`code` es inmutable tras la creación** (trigger `private.products_code_guard()`; decisión del usuario, Fase 2) |
+| `lots` | `product_id`, `code`, `warranty_days`, `received_on`, `expected_count`, `imported_count`, `is_active` | `unique(product_id, code)` — **no globalmente único** (decisión del usuario, Fase 2); `unique(id, product_id)` para la FK compuesta de `serials`. `expected_count` es **puramente informativo**: nunca bloquea creación, importación ni uso del lote (decisión del usuario, Fase 2) |
+| `serials` | `serial` unique, `barcode` unique, `lot_id`, `product_id`, `status` (`AVAILABLE`\|`ACTIVATED`\|`BLOCKED`\|`VOID`), `status_reason`, `import_id` | FK compuesta `(lot_id, product_id)` → `lots(id, product_id)`; códigos normalizados por una única función SQL (`private.normalize_code`). **Globalmente únicos, sin asignación a tienda** (decisión del usuario, Fase 2: no se agrega `store_id` hasta que sea estrictamente necesario) |
 | `serial_imports` | `lot_id`, `file_name`, `status` (`STAGING`\|`COMMITTING`\|`COMPLETED`\|`FAILED`\|`CANCELLED`), `total/valid/duplicate/error/committed_rows`, `created_by` | Ver "Importación masiva" para las transiciones |
 | `serial_import_rows` | `import_id`, `row_number`, `serial`, `barcode`, `status`, `error_code` | unique `(import_id, row_number)`; staging, se purga con `purge_import_staging` tras `COMPLETED`/`CANCELLED` |
 | `warranties` | `serial_id` unique, `store_id`, `seller_id`, `activated_at`, `duration_days`, `expires_at`, `store_attention_days`; snapshot `product_id/code/name`, `serial`, `barcode`, `lot_code`, `conditions`, `exclusions`; cliente `customer_name`, `customer_national_id`, `customer_whatsapp`; `voided_at/by/reason` | Trigger BEFORE UPDATE que rechaza cambios a fechas, duración, serial, tienda y snapshot |
@@ -73,8 +73,9 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 |---|---|---|
 | `profiles` | todo (vía acciones de servidor) | SELECT de su fila; sin UPDATE |
 | `stores` | CRUD | SELECT de su tienda |
-| `products` | CRUD | SELECT de activos, todas las columnas (texto comercial, no dato interno) |
-| `lots`, `serials`, `serial_imports*` | CRUD / RPC | sin acceso (solo `lookup_serial`, columnas mínimas) |
+| `products`, `lots` | CRUD directo (catálogo, no máquina de estados) | `products`: SELECT de activos, todas las columnas (texto comercial, no dato interno). `lots`: sin acceso (contienen métricas de inventario) |
+| `serials` | **SELECT únicamente** — incluso el admin escribe solo por RPC (`create_serial`, `block_serial`, `unblock_serial`, `void_serial`) | sin acceso (solo `lookup_serial`, columnas mínimas, en la Fase 5) |
+| `serial_imports*` | CRUD / RPC (Fase 3) | sin acceso |
 | `warranties` (+ vista) | SELECT todo | SELECT de su tienda; escritura solo por RPC |
 | `warranty_corrections` | SELECT + decidir por RPC | SELECT de su tienda; crear por RPC |
 | `warranty_claims` | todo por RPC | SELECT de su tienda; abrir reclamo por RPC |
@@ -87,6 +88,10 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 
 | Función | Quién | Qué garantiza |
 |---|---|---|
+| `create_serial(product_id, lot_id, serial, barcode)` | admin | Normaliza, valida que el lote pertenezca al producto y esté activo, rechaza colisión serial↔barcode (`private.check_serial_collision`), inserta en `AVAILABLE` (Fase 2) |
+| `block_serial(id, reason)` | admin | `AVAILABLE → BLOCKED` con `select ... for update`; `reason` obligatorio (Fase 2) |
+| `unblock_serial(id)` | admin | `BLOCKED → AVAILABLE`, limpia `status_reason` (Fase 2) |
+| `void_serial(id, reason)` | admin | `AVAILABLE\|BLOCKED → VOID`, irreversible (sin reactivación desde `VOID`), `reason` obligatorio (Fase 2) |
 | `lookup_serial(code)` | vendedor | Coincidencia exacta. Devuelve solo `serial, barcode, product_code, product_name, warranty_duration_days, status` — nunca `lot_id`, `import_id` ni `status_reason` |
 | `activate_warranty(code, customer)` | vendedor | Transacción única: `FOR UPDATE` del serial, validaciones, insert de garantía con snapshot y `now()`, serial → `ACTIVATED`, auditoría, outbox. No acepta fecha ni `store_id`: la tienda sale siempre de `private.current_store_id()` |
 | `update_warranty_customer(id, fields)` | vendedor | Solo campos del cliente, su tienda (derivada del perfil, no del parámetro), `now() < activated_at + 24 h`, auditado |
@@ -163,9 +168,19 @@ Restricciones técnicas de fondo: `statement_timeout` de 8 s para `authenticated
 
 ## Índices previstos
 
-- Únicos: `serials(serial)`, `serials(barcode)`, `warranties(serial_id)`, `stores(code)`, `products(code)`, `lots(code)`.
+- Únicos: `serials(serial)`, `serials(barcode)`, `warranties(serial_id)`, `stores(code)`, `products(code)`, `lots(product_id, code)`.
 - `warranties(store_id, activated_at desc)`, `warranties(expires_at)`, `warranties(store_id, customer_national_id)`, `warranties(customer_whatsapp)`, GIN `pg_trgm` sobre `warranties(customer_name)`.
 - `serials(lot_id, status)` y parcial `serials(status) where status = 'AVAILABLE'` para el dashboard.
 - `serial_import_rows(import_id, status)`, `(import_id, serial)`, `(import_id, barcode)`.
 
 Se validan con `EXPLAIN ANALYZE` sobre 1M filas en la Fase 9.
+
+## Fase 2 — implementado (2026-09-15)
+
+Migraciones: `products_and_lots`, `serials`, `serials_rpc`, `phase2_rls`, `serials_fk_index`.
+
+- `products`/`lots`: catálogo de escritura directa (RLS admin), reutilizan `set_updated_at`/auditoría de Fase 1.
+- `serials`: máquina de estados 100% por RPC (ver arriba); `lots.imported_count` se recalcula por trigger `AFTER INSERT OR DELETE` (subconsulta — a revisar en la Fase 3 para inserción masiva eficiente).
+- Al embeber `lots` desde `serials` en PostgREST hay que nombrar la relación explícitamente (`lots!serials_lot_id_fkey(...)`): la FK compuesta `(lot_id, product_id)` crea una segunda relación `serials↔lots` y PostgREST no puede elegir sola (`PGRST201`). Bug real encontrado y corregido durante la verificación E2E de esta fase.
+- Paginación por keyset en `/admin/seriales` (única tabla de catálogo con volumen real); `products`/`lots` usan `.limit()` simple.
+- No implementado a propósito en esta fase: asignación de seriales a tiendas, importación masiva, activación de garantías (ver `docs/PHASE-2-REVIEW.md` y `PROGRESS.md`).
