@@ -56,6 +56,10 @@ Esto aplica en particular a `activate_warranty`, `update_warranty_customer`, `re
 
 **Fase 2**: `create_serial`, `block_serial`, `unblock_serial`, `void_serial` — checklist aplicado y verificado (todas re-verifican `private.is_admin()`, `search_path=''`, revoke explícito a `anon`); tests pgTAP intentan cada transición como vendedor y confirman denegación.
 
+**Fase 3**: `stage_import_rows`, `start_import_commit`, `commit_import_batch`, `cancel_import`, `purge_import_staging` — checklist aplicado y verificado igual que en Fase 2. Sin parámetros de fecha/tienda; `commit_import_batch` usa `FOR UPDATE SKIP LOCKED` para que dos llamadas concurrentes (dos admins, o un reintento en vuelo) nunca procesen la misma fila — mismo patrón ya documentado para el outbox de notificaciones (`docs/ARCHITECTURE.md`). Tests pgTAP intentan las 5 como vendedor (rechazadas) y ejercitan idempotencia/reintento/conflicto real.
+
+**Fase 4**: `admin_finalize_seller_profile`, `admin_set_seller_active` — checklist aplicado (`search_path=''`, revoke explícito de `anon`/`public`, re-verificación de `is_admin()`, `store_id` recibido como parámetro porque lo asigna el admin a otra identidad, nunca a la propia, y se re-valida contra `stores` dentro de la función, no se confía en que exista o esté activa). Existen porque `profiles` no tiene ninguna política `UPDATE` para `authenticated` (ni para admin): sin estas RPC, la única forma de escribir el perfil sería el cliente de service role, que rompería la auditoría con actor correcto (`auth.uid()` es `NULL` fuera de una sesión normal — ver comentario en `audit_row_change()`, Fase 1). El cliente de service role (`lib/supabase/admin.ts`) se usa exclusivamente para lo que Postgres no puede hacer: `auth.admin.inviteUserByEmail` (crear el usuario + enviar el correo) y `auth.admin.updateUserById` (fijar `app_metadata` tras invitar; `ban_duration` al desactivar/reactivar, para matar el refresh token). Tests pgTAP intentan ambas RPC como vendedor (rechazadas), validan cada mensaje de error (perfil/tienda inexistente, tienda inactiva, ya aprovisionado, objetivo no es vendedor), y verifican que el camino real (RPC, no un `UPDATE` simulado) le quita/devuelve el acceso a un vendedor de inmediato y audita con el admin real como actor, nunca `NULL`.
+
 ## MFA
 
 - TOTP (Google Authenticator, Authy y similares), gratis en Supabase Auth.
@@ -84,8 +88,8 @@ Los seriales no están asignados a tiendas: cualquier tienda puede activar cualq
 |---|---|
 | 1 | Aislamiento de tiendas en `profiles`/`stores`, rol no autoeditable, `anon` denegado, auditoría no borrable |
 | 2 | Vendedor sin acceso a lotes y seriales (43 tests pgTAP reales contra el proyecto: normalización, inmutabilidad de `products.code`, unicidad de `lots.code` por producto, FK compuesta, matriz completa de transiciones de `serials`, colisión serial↔barcode, RLS admin/vendedor/anon) |
-| 3 | Vendedor no puede llamar a los RPC de importación; ver casos de prueba de importación en `DATABASE.md` (incluye intentos de doble confirmación y cancelación fuera de tiempo) |
-| 4 | Vendedor desactivado pierde acceso de inmediato |
+| 3 | Vendedor sin acceso a `serial_imports`/`serial_import_rows` ni a las 5 RPC (46 tests pgTAP reales contra el proyecto: clasificación por conjuntos, idempotencia de reintento, conflicto real por carrera, cancelación, purga, RLS admin/vendedor). Benchmarks reales de 100k y 300k filas contra la base — ver `DATABASE.md`, "Benchmarks reales" |
+| 4 | Vendedor sin acceso a `admin_finalize_seller_profile`/`admin_set_seller_active`; vendedor desactivado por el camino real (RPC) pierde acceso de inmediato y su sesión queda revocada en Auth; `admin_set_seller_active` rechaza objetivos que no son vendedores (no generaliza a "cualquier usuario"); auditoría con el admin real como actor en las 3 transiciones (finalizar, desactivar, reactivar) |
 | 5 | Activación con tienda derivada del perfil (nunca de un parámetro), fecha del servidor, doble activación imposible, checklist de `SECURITY DEFINER` aplicado a `activate_warranty` |
 | 6 | Edición bloqueada pasadas 24 h; PDF de otra tienda → 404; solo admin decide correcciones; vendedor sin acceso a `technical_reports` |
 | 7 | Reclamos aislados por tienda; solo admin decide; `responsible_party` congelado al abrir, no recalculado después |
