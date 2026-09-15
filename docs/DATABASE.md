@@ -237,4 +237,36 @@ Producto y lote reales creados desde la UI → archivo `.csv` real (5 filas, con
 
 Al escalar hacia 1M, el proyecto (plan **gratuito**, límite duro de 500 MB) se quedó sin disco: `audit_logs` (Fase 1, append-only) acumuló ~296 MB por los triggers de auditoría disparándose en cada uno de los ~440.000 seriales sintéticos creados durante los benchmarks de 100k/300k, sumado a ~277 MB de `serial_import_rows` y ~159 MB de `serials`. La base quedó forzada en modo solo-lectura por la plataforma (protección automática ante disco lleno, `default_transaction_read_only = on` a nivel de plataforma — ni el rol `postgres` del proyecto es superusuario real, así que ni `SET ... = 'off'` ni `VACUUM FULL` bastan para revertirlo por SQL). El código de Fase 3 en sí mismo no tiene un techo de escala conocido: los 200k que sí se procesaron mantuvieron el mismo ritmo lineal que 100k/300k. El límite es del plan de Supabase contratado, no del diseño.
 
+## Fase 5 — activación de garantías, implementado (2026-09-15)
+
+Migración: `20260915162417_phase5_warranties.sql`.
+
+### Esquema
+
+- `warranties`: snapshot histórico e inmutable de una activación. `serial_id uuid unique` (FK a `serials`) — el "doble cinturón": aunque `activate_warranty` tuviera un bug, la base impide dos garantías para el mismo serial. Columnas de snapshot copiadas en el momento de activar (`product_id`, `product_code`, `product_name`, `serial`, `barcode`, `lot_code`, `conditions`, `exclusions`, `duration_days`, `expires_at`, `store_attention_days`) para que un cambio posterior en `products`/`lots`/`app_settings` nunca altere retroactivamente una garantía ya activada. `customer_name/national_id/whatsapp` (NOT NULL, no vacíos) son la única parte editable después de creada, y solo dentro de las 24h (`update_warranty_customer`). `voided_at/by/reason` (nullable) reservados para `void_warranty` (Fase 6), sin usar todavía.
+- Trigger `private.warranties_guard_immutable()` (BEFORE UPDATE): rechaza cualquier cambio a las columnas de snapshot/fechas/identidad, para cualquier rol — no hay política UPDATE para nadie salvo las RPC, que corren como el owner de la tabla.
+- Trigger `audit_warranties` reutiliza `private.audit_row_change()` (Fase 1): sin mecanismo de auditoría nuevo.
+- Índice `warranties_store_activated_idx (store_id, activated_at desc)` para el listado de la tienda.
+
+### RPC (3, todas `SECURITY DEFINER`, checklist de `SECURITY.md` aplicado)
+
+| RPC | Qué garantiza |
+|---|---|
+| `lookup_serial(code)` | Solo vendedor activo. Normaliza el código y busca por `serial` o `barcode`. Devuelve solo las columnas mínimas que necesita la pantalla de activación (no expone `serials`/`lots` completos — regla de mínimo dato de `CLAUDE.md`). 0 filas si no existe, nunca una excepción. |
+| `activate_warranty(code, customer jsonb)` | Solo vendedor activo. Bloquea la fila del serial (`FOR UPDATE`) antes de decidir: `AVAILABLE→ACTIVATED` es la única transición permitida; rechaza `ACTIVATED`/`BLOCKED`/`VOID` con un mensaje específico por estado, y también producto/lote inactivo. Snapshotea `store_attention_days` desde `app_settings`. La concurrencia real (dos vendedores activando el mismo serial a la vez) la resuelve el lock de fila, no un chequeo de aplicación; el `UNIQUE` de `warranties.serial_id` es el respaldo. Reintento de red/doble clic: el segundo intento encuentra el serial ya `ACTIVATED` y se rechaza sin crear una segunda garantía — la idempotencia es la propia máquina de estados del serial, sin tabla ni clave de idempotencia aparte. |
+| `update_warranty_customer(warranty_id, customer jsonb)` | Solo el vendedor de la tienda dueña de la garantía, y solo si `now() < activated_at + 24h`. Único campo editable después de activar; auditado por el trigger genérico. Pasadas las 24h, la vía es `request_correction`/`decide_correction` (Fase 6, no implementado aquí). |
+
+### RLS
+
+`warranties`: `revoke all from authenticated; grant select`; políticas `warranties_admin_select` (`is_admin()`) y `warranties_seller_select` (`store_id = current_store_id()`) — mismo molde que el resto de tablas de catálogo. Sin política de escritura para nadie: todo pasa por las 3 RPC.
+
+### Bugs reales encontrados por pgTAP y corregidos en esta misma fase
+
+1. **`activate_warranty`**: `RETURNS TABLE (..., serial text, barcode text, ...)` convierte esos nombres en variables OUT visibles en todo el cuerpo de la función. El `SELECT ... FOR UPDATE` que buscaba el serial usaba `serial = v_code or barcode = v_code` sin calificar, lo que Postgres reportó como `column reference "serial" is ambiguous` (42702) — 6 pruebas de pgTAP fallaron con este error real. Corregido calificando con un alias de tabla (`s.serial`, `s.barcode`, `select s.*`). `lookup_serial` no tenía el bug (ya calificaba con alias `s`); `update_warranty_customer` no puede tenerlo (no usa `RETURNS TABLE`).
+2. Dos pruebas de pgTAP (no del producto) resolvían un id/estado con un `SELECT` directo sobre `serials`/`warranties` ejecutado como el vendedor cuya sesión estaba bajo prueba — pero por diseño (`docs/DATABASE.md`, RLS) un vendedor no tiene SELECT directo sobre `serials`, y no puede ver la garantía de otra tienda por RLS. Ambas pruebas fallaban por eso, no por un bug de la RPC. Corregidas: la primera usa `lookup_serial` (que sí es accesible al vendedor) en vez de leer `serials` directo; la segunda resuelve el id de la garantía como owner (antes de cambiar de rol al vendedor bajo prueba) y lo pasa ya resuelto, igual que le llegaría por URL/API en un caso real.
+
+### Verificación pgTAP real (contra el proyecto Supabase real, no simulada)
+
+`supabase/tests/database/09_warranties.sql`, corrido vía SQL Editor del dashboard (mismo método que Fases 2-4; el CLI sigue sin poder conectarse desde esta red — ver Fase 4, PROBLEMAS): **36/36 PASS** tras los 2 fixes de arriba (los primeros 6 fallos eran el bug real #1; tras corregirlo, 2 fallos más eran el problema #2 de las pruebas).
+
 **Recuperación real, sin pagar**: el dashboard de Supabase (Database Settings) ofrece un botón **"Disable read-only mode"** — habilita escritura por 15 minutos para reducir el tamaño de la base; si no se reduce lo suficiente, se puede volver a pedir. Con esa ventana se liberaron ~122 MB borrando dos índices de `serial_import_rows` que habían quedado sobredimensionados con la tabla ya vacía, y luego se borraron ~375.000 de los ~440.000 seriales sintéticos del lote más grande usando un `PROCEDURE` con `COMMIT` por lote de 3.000 filas (una única llamada, no cientos) — cada `DELETE` seguía dependiendo de que `audit_logs` tuviera sitio para su propia fila de auditoría, así que hubo que alternar borrado y `VACUUM`. Quedan **65.000 filas sintéticas sin poder borrar** (documentadas como deuda técnica, no bloquean el código de Fase 3) tras llegar a un punto de retornos decrecientes; el usuario decidió detener la limpieza ahí y seguir con el resto de la fase. Antes de una importación real de cientos de miles/millones de filas en producción, usar un plan de pago con disco suficiente (ver `docs/PROJECT-PLAN.md`, sección N).

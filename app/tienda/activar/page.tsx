@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { ScanBarcode } from "lucide-react";
-import { EmptyState } from "@/components/state/empty-state";
+import { ActivationFlow } from "./activation-flow";
 
 export const metadata: Metadata = { title: "Activar garantía" };
 
 export default function ActivarPage() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-md space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Activar garantía</h1>
+        <p className="text-sm text-muted-foreground">Busca el serial o código de barras del producto.</p>
       </div>
-      <EmptyState
-        icon={ScanBarcode}
-        title="Disponible en la Fase 5"
-        description="Buscar por serial o código de barras, escanear y activar la garantía se implementa junto con productos, lotes y seriales."
-      />
+      <ActivationFlow />
     </div>
   );
 }

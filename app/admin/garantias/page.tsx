@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ScanBarcode } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/state/empty-state";
 import {
   Table,
@@ -13,39 +12,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export const metadata: Metadata = { title: "Inicio" };
+export const metadata: Metadata = { title: "Garantías" };
 
-// Sin paginación por keyset a propósito (mismo criterio que /admin/productos):
-// el volumen de garantías de una tienda en el MVP no justifica esa
-// complejidad todavía. RLS (warranties_seller_select) ya filtra a la
-// tienda del vendedor — no hace falta repetir el filtro aquí.
-export default async function TiendaPage() {
+// Visor mínimo de solo lectura, igual que /admin/auditoria: consultar
+// garantías globalmente es una capacidad de admin ya documentada desde la
+// Fase 1 (docs/ARCHITECTURE.md); un panel con filtros/estado derivado
+// (activa/por vencer/vencida) no es parte del alcance pedido para esta
+// fase — lo mínimo aquí es suficiente para verificar que la activación
+// funciona de punta a punta.
+type WarrantyRow = {
+  id: string;
+  product_name: string;
+  serial: string;
+  customer_name: string;
+  activated_at: string;
+  expires_at: string;
+  stores: { name: string; code: string } | null;
+};
+
+export default async function GarantiasPage() {
   const supabase = await createClient();
   const { data: warranties, error } = await supabase
     .from("warranties")
-    .select("id, product_name, serial, customer_name, activated_at, expires_at")
+    .select("id, product_name, serial, customer_name, activated_at, expires_at, stores(name, code)")
     .order("activated_at", { ascending: false })
-    .limit(100);
+    .limit(100)
+    .returns<WarrantyRow[]>();
 
   if (error) throw new Error("No se pudieron cargar las garantías.");
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Inicio</h1>
-          <p className="text-sm text-muted-foreground">Garantías activadas por tu tienda.</p>
-        </div>
-        <Button render={<Link href="/tienda/activar">Activar garantía</Link>} />
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Garantías</h1>
+        <p className="text-sm text-muted-foreground">Últimas 100 activaciones, de todas las tiendas.</p>
       </div>
 
       {!warranties || warranties.length === 0 ? (
-        <EmptyState
-          icon={ScanBarcode}
-          title="Todavía no hay garantías activadas"
-          description="Activa la primera buscando un serial o código de barras."
-          action={<Button render={<Link href="/tienda/activar">Activar garantía</Link>} />}
-        />
+        <EmptyState icon={ShieldCheck} title="Todavía no hay garantías activadas" />
       ) : (
         <div className="rounded-lg border">
           <Table>
@@ -53,6 +57,7 @@ export default async function TiendaPage() {
               <TableRow>
                 <TableHead>Producto</TableHead>
                 <TableHead>Serial</TableHead>
+                <TableHead>Tienda</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Activada</TableHead>
                 <TableHead>Vence</TableHead>
@@ -62,11 +67,14 @@ export default async function TiendaPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/tienda/garantias/${w.id}`} className="font-medium hover:underline">
+                    <Link href={`/admin/garantias/${w.id}`} className="font-medium hover:underline">
                       {w.product_name}
                     </Link>
                   </TableCell>
                   <TableCell className="font-mono text-sm">{w.serial}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {w.stores ? `${w.stores.name} (${w.stores.code})` : "—"}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{w.customer_name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(w.activated_at).toLocaleDateString("es")}

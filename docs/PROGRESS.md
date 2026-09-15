@@ -11,7 +11,7 @@
 | 2 | Productos + lotes + seriales | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 3 | Importación CSV/Excel | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 4 | UI de tiendas + vendedores | **Completada, verificada contra la base real; sin E2E de navegador (2026-09-15)** |
-| 5 | Activación de garantías | Pendiente |
+| 5 | Activación de garantías | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 6 | Correcciones + comprobantes + email | Pendiente |
 | 7 | Reclamos + reportes técnicos | Pendiente |
 | 8 | Visor de auditoría + seguridad avanzada + MFA | Pendiente |
@@ -19,6 +19,134 @@
 | 10 | Propiedad intelectual + licencia + documentación final | Pendiente |
 
 ---
+
+## Fase 5 — Activación de garantías (checkpoint definitivo)
+
+```text
+FASE: 5 — Activación de garantías
+ESTADO: COMPLETA. Base de datos verificada con pgTAP real contra el proyecto
+        Supabase real (36/36) y con lint/typecheck/build/Vitest en verde.
+        E2E de navegador de la activación autenticada NO se hizo — mismo
+        motivo documentado en la Fase 4 (no se usan credenciales reales de
+        vendedor/admin en este proyecto). No se marca como "verificada de
+        punta a punta" hasta que ese E2E se pueda hacer.
+
+COMPLETADO:
+- Migración `20260915162417_phase5_warranties.sql`: tabla `warranties`
+  (snapshot histórico inmutable, `serial_id` UNIQUE como "doble cinturón"),
+  trigger de inmutabilidad (`private.warranties_guard_immutable`, BEFORE
+  UPDATE, whitelist de solo `customer_*`/`voided_*`), auditoría reutilizando
+  el trigger genérico de Fase 1 (sin mecanismo nuevo), RLS admin/vendedor
+  por tienda. 3 RPC `SECURITY DEFINER`: `lookup_serial` (datos mínimos,
+  seller-only), `activate_warranty` (lock de fila `FOR UPDATE`, validación
+  completa de cliente y estado del serial/lote/producto, snapshot de
+  `store_attention_days`, fecha del servidor), `update_warranty_customer`
+  (única edición permitida, ventana de 24h, aislada por tienda).
+- Frontend: `/tienda/activar` (entrada manual + escaneo de cámara con
+  `BarcodeDetector` nativo como mejora progresiva, sin agregar el ponyfill
+  de `docs/ARCHITECTURE.md` — decisión de minimizar dependencias,
+  documentada en el código), confirmación antes de activar, estados
+  distintos para éxito/ya-activado/bloqueado/anulado/no-encontrado/error de
+  red. `/tienda` ahora lista garantías reales (antes placeholder) con link
+  al detalle; `/tienda/garantias/[id]` permite editar cliente dentro de las
+  24h. `/admin/garantias` y `/admin/garantias/[id]`: listado/detalle
+  mínimos de solo lectura (RLS ya da visibilidad de todas las tiendas; un
+  dashboard con KPIs es la Fase 9, no esta). Nav admin y seller
+  actualizados.
+- Tests: 7 Vitest nuevos (`lib/validation/warranties.test.ts`) — 54/54 en
+  total, sin regresión. pgTAP nuevo `09_warranties.sql` (36 casos): rechazo
+  de ambas RPC para admin, `lookup_serial` no-encontrado sin excepción y
+  visibilidad de cada estado (AVAILABLE/BLOCKED/VOID/ACTIVATED) sin
+  ocultarlo, normalización de código; `activate_warranty` rechaza cada
+  campo de cliente faltante/inválido (incluido formato E.164), serial
+  inexistente/bloqueado/anulado, lote/producto inactivo; éxito + snapshot
+  correcto; reintento (doble clic) no crea una segunda garantía; "doble
+  cinturón" (UNIQUE) probado con INSERT directo bypaseando la RPC;
+  inmutabilidad probada con UPDATE directo bypaseando la RPC; snapshot no
+  cambia aunque se edite el producto/lote real después; auditoría con el
+  vendedor real como actor (creación de garantía y transición del serial);
+  `update_warranty_customer` rechaza otra tienda y pasadas las 24h, acepta
+  dentro de la ventana; RLS de aislamiento por tienda + visibilidad total
+  del admin.
+- **2 bugs reales encontrados por pgTAP contra el proyecto real y
+  corregidos antes de reportar** (ver `docs/DATABASE.md`, Fase 5, para el
+  detalle completo):
+  1. `activate_warranty`: `RETURNS TABLE` con columnas `serial`/`barcode`
+     las convierte en variables OUT visibles en toda la función; el lock
+     `SELECT ... FOR UPDATE` las usaba sin calificar, y Postgres reportó
+     `column reference "serial" is ambiguous` (42702) — 6 tests fallaron
+     con este error real. Corregido calificando con alias de tabla.
+  2. 2 pruebas de pgTAP (no del producto) intentaban leer `serials`/una
+     garantía de otra tienda con un `SELECT` directo como el vendedor bajo
+     prueba — pero por diseño ese vendedor no tiene ese acceso (RLS).
+     Corregidas para usar `lookup_serial` y para resolver el id como owner
+     antes de cambiar de rol, respectivamente.
+
+TESTS:
+- Lint: PASS (1 error real corregido en el camino: `setState` síncrono
+  dentro de un `useEffect` en `barcode-scanner.tsx` — el mensaje de
+  "navegador no soportado" se deriva ahora directo del render en vez de
+  escribirse como efecto secundario; también se quitó un
+  `eslint-disable-next-line jsx-a11y/media-has-caption` que ya no aplicaba
+  a nada, señalado como warning).
+- Typecheck: PASS.
+- Build (`next build`): PASS — las 27 rutas compilan, incluidas las nuevas
+  de F5 (`/tienda/activar`, `/tienda/garantias/[id]`, `/admin/garantias`,
+  `/admin/garantias/[id]`).
+- Vitest: PASS — 54/54 (47 de Fases 1-4 + 7 nuevos de `warranties.ts`).
+- **pgTAP contra el proyecto real: PASS — 36/36** (`09_warranties.sql`,
+  corrido vía SQL Editor del dashboard — el CLI sigue sin poder conectarse
+  desde esta red, ver Fase 4 PROBLEMAS). Los primeros 6 fallos eran el bug
+  real #1 de arriba; corregido ese, 2 fallos más eran el problema #2 de las
+  pruebas mismas. Tras ambos fixes: 0 fallos.
+- **E2E de navegador: NO se hizo esta vez**, mismo motivo que la Fase 4 —
+  probar la activación real requiere iniciar sesión como un vendedor real,
+  y este proyecto no usa/pide contraseñas reales de usuarios del cliente.
+  `tests/e2e/login.spec.ts` (páginas públicas, sin autenticar) sigue en
+  verde sin cambios; no se agregó nada nuevo ahí porque `/tienda/activar`
+  ya queda cubierto por el mismo middleware que protege `/tienda`.
+
+PROBLEMAS (encontrados durante esta fase):
+1. Los 2 bugs reales de arriba (uno de producto, uno de las pruebas).
+2. El navegador controlado por la sesión se volvió intermitente varias
+   veces durante la ejecución de pgTAP vía SQL Editor ("Couldn't determine
+   which page this action targets", pestañas que dejaron de responder tras
+   recargar). Se resolvió abriendo una pestaña nueva cuando ocurrió, sin
+   perder trabajo — no bloqueó la verificación, solo la hizo más lenta.
+3. Copiar el script de pgTAP (con la tabla temporal envolvente para ver
+   todos los resultados de una sola corrida) al portapapeles del navegador
+   con `javascript_tool` fue poco confiable para payloads grandes;
+   `Set-Clipboard` de PowerShell leyendo el archivo local resultó mucho más
+   confiable y se usó para todo el resto de la fase.
+
+RIESGOS:
+- Igual que la Fase 4: sin E2E de navegador autenticado, hay una capa de
+  verificación (comportamiento real en el navegador con sesión de vendedor)
+  que sigue sin probarse en vivo. Mitigado por: pgTAP real cubre toda la
+  lógica de negocio y seguridad a nivel de base de datos, que es la
+  autoridad (`CLAUDE.md`); el frontend es una capa delgada sobre las RPC.
+- La cámara (`BarcodeDetector`) es mejora progresiva sin verificación real
+  en un dispositivo/navegador que la soporte (Chrome desktop no expone
+  cámara trasera; no se forzó una prueba con webcam). La entrada manual
+  (siempre disponible) sí fue ejercitada indirectamente por el flujo de
+  pgTAP (mismas RPC).
+
+DECISIONES:
+- Confirmado con el usuario ("continua entonces") seguir trabajando sobre
+  la base Supabase actual en vez de crear una nueva, tras una duda sobre si
+  el benchmark de 1M de la Fase 3 la había dejado "corrupta" — no lo está;
+  el error real de este checkpoint fue un bug de código de esta misma
+  fase, sin relación con el incidente de espacio en disco de la Fase 3.
+- Sin PDF, email/Resend, `warranty_corrections`/`warranty_claims`/
+  `technical_reports`, `void_warranty`, MFA, throttling avanzado ni el
+  dashboard de analítica de la Fase 9 — todo eso queda para F6-F9, tal como
+  pedía el prompt de esta fase.
+
+SIGUIENTE:
+- Fase 6 — Correcciones + comprobantes + email. **No iniciar sin
+  aprobación explícita del usuario** (pedido expreso: revisar este reporte
+  antes de seguir). Tampoco hacer commit de esta fase sin esa aprobación.
+```
 
 ## Mantenimiento previo a Fase 5 — limpieza de Supabase + auditoría del área admin/tienda
 
