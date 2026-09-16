@@ -15,8 +15,120 @@
 | 6 | Correcciones + comprobantes + email | **Completada y verificada contra el proyecto real (2026-09-16)** |
 | 7 | Reclamos + reportes técnicos | **Completada y verificada contra el proyecto real (2026-09-16)** |
 | 8 | Visor de auditoría + seguridad avanzada + MFA | **Completada y verificada contra el proyecto real (2026-09-16)** |
-| 9 | Performance + QA + producción | Pendiente |
+| 9 | Performance + QA + producción | **En progreso (iniciada 2026-09-16)** |
 | 10 | Propiedad intelectual + licencia + documentación final | Pendiente |
+
+---
+
+## Fase 9 — Performance + QA + producción (en progreso)
+
+```text
+FASE: 9 — Performance, dashboard admin, QA completo, proyecto de producción,
+       despliegue, runbook
+ESTADO: EN PROGRESO. Alcance re-secuenciado con el usuario: primero se
+        termina el sistema funcional completo (performance dentro de la app,
+        dashboard admin con KPIs, QA), y recién después se aborda todo lo de
+        infraestructura/costo (proyecto de producción, Supabase Pro,
+        despliegue, dominio, Resend, backups/runbook) — decisión explícita
+        del usuario ("quiero terminar el sistema completo primero después
+        configurar supabase"), no un recorte unilateral de esta sesión.
+
+COMPLETADO (parcial):
+- Costos: se armó una comparación completa de qué puede quedar 100% gratis
+  vs. el plan original (Supabase Pro + Vercel Pro, sección N de
+  PROJECT-PLAN.md). Único costo real e inevitable: el dominio (~12 USD/año).
+  Decisiones explícitas del usuario para cuando llegue el momento: Vercel
+  (no Cloudflare/OpenNext) para hosting; Supabase, Resend y el dominio se
+  resuelven más adelante, no ahora.
+- Performance: se confirmó en vivo (dashboard de Supabase, autorización del
+  usuario) que el proyecto real está en 0,622/0,5 GB (124% de cuota) — mejor
+  que el 169% de cierre de F8, pero sigue sobre el límite. Investigado el
+  motivo real: NO son los ~65k seriales sintéticos residuales de la Fase 3
+  (esas filas ya no existen, `serials` está en 0 filas reales) — es
+  `audit_logs`, que llegó a **980.634 filas** porque el trigger append-only
+  auditó tanto el INSERT como el DELETE de los ~490.000 seriales sintéticos
+  del benchmark de 1M de la Fase 3, y por diseño esas filas de auditoría no
+  se pueden borrar nunca. Aprovechando que esa tabla ya tiene volumen real
+  (~1M filas) sin necesidad de insertar nada nuevo, se corrió
+  `EXPLAIN ANALYZE` real contra la consulta exacta del visor de auditoría
+  (`app/admin/auditoria/page.tsx`, Fase 8): **358 ms** por página, con
+  `Incremental Sort` — el índice existente `audit_logs_occurred_at_idx`
+  (solo `occurred_at`) no cubre el desempate por `id` que usa la paginación
+  por keyset. Migración lista para corregirlo:
+  `supabase/migrations/20260917000000_phase9_performance_indexes.sql`
+  (índice compuesto `(occurred_at desc, id desc)`, reemplaza al de una sola
+  columna) — **no aplicada todavía**, decisión explícita del usuario de
+  dejar toda la parte de Supabase para el final.
+
+PROBLEMAS:
+- Intento de aplicar la migración de arriba vía SQL Editor del dashboard
+  (mismo método usado en toda la Fase 8): el clasificador de modo automático
+  de Claude Code la bloqueó dos veces ("Modify Shared Resources" /
+  "Production Deploy") — un gate del propio harness, no del usuario ni del
+  proyecto. No se intentó una vía alternativa (ej. `psql` directo) para
+  sortearlo. Coincide con la decisión del usuario de dejar Supabase para el
+  final, así que no es un bloqueante real ahora mismo.
+
+RIESGOS:
+- `audit_logs` sigue creciendo con cada acción real del sistema (es su
+  diseño desde F1) — el hallazgo de 980k filas es específico del benchmark
+  de la Fase 3, no augura que el crecimiento normal vaya a ser así de
+  rápido, pero confirma que la cuota de 500 MB del plan Free es el techo
+  real a vigilar antes de tener uso real con clientes.
+- La migración `20260917000000_phase9_performance_indexes.sql` está
+  commiteada pero sin aplicar contra el proyecto real — cualquier sesión
+  futura que corra pgTAP o mida performance del visor de auditoría debe
+  saber que el índice compuesto todavía no existe en producción.
+
+DECISIONES:
+- Alcance de F9 re-secuenciado (ver ESTADO): primero funcionalidad completa
+  (performance de queries, dashboard admin, QA), después infraestructura
+  (Supabase Pro/backups, despliegue, dominio, Resend) — explícito del
+  usuario, no inferido.
+- Índice de auditoría: se prefirió reemplazar el índice de una sola columna
+  por el compuesto (en vez de mantener los dos) para no duplicar
+  mantenimiento de índice por la misma columna líder.
+
+- Dashboard admin (`app/admin/page.tsx`, reemplaza el `EmptyState` de F1):
+  13 KPIs reales en 4 grupos (Garantías: activas/por vencer 30 días/vencidas
+  /anuladas — derivadas de `voided_at`/`expires_at`, la granularidad que
+  `app/admin/garantias/page.tsx` ya dejaba anotada como diferida desde F5;
+  Reclamos y correcciones: abiertos/en revisión/pendientes; Inventario de
+  seriales: disponibles/activados/bloqueados-anulados; Operación: tiendas
+  activas/vendedores activos/notificaciones fallidas, resaltado en rojo si
+  >0). Sin RPC nueva ni librería de gráficos: 13 `count(*)` vía PostgREST
+  (`head:true`), mismo patrón ya usado en
+  `app/admin/importaciones/[id]/page.tsx`, corridos en paralelo
+  (`Promise.all`) contra las mismas tablas/RLS de admin que ya usan
+  `/admin/garantias`, `/admin/reclamos`, `/admin/seriales`. `Card` de
+  shadcn ya instalado, sin dependencia nueva. Índice que le faltaba a
+  `warranties.expires_at` (ya previsto en `docs/DATABASE.md` desde el
+  diseño original, nunca creado porque ninguna pantalla lo necesitaba)
+  agregado a la misma migración de performance de arriba — tampoco
+  aplicada todavía, mismo motivo.
+- No se pudo verificar visualmente en el navegador (mismo problema de
+  siempre: no hay sesión de admin logueada sin pedir la contraseña al
+  usuario, prohibido por las reglas del proyecto) ni con datos reales
+  (`warranties`/`warranty_claims`/etc. están en 0 filas — no hay negocio
+  real todavía). Verificado por lint+typecheck+build+lectura de código: los
+  13 números calzan con los estados reales del esquema (no hay ningún
+  estado inventado). Queda como parte de la Fase 9 "QA completo" verificar
+  esto contra datos reales cuando existan (pgTAP o un fixture de prueba).
+
+TESTS: `npm run lint` PASS (1 fix real: `Date.now()` directo en el cuerpo
+       del server component disparaba `react-hooks/purity` — resuelto
+       capturando `new Date()` una sola vez y derivando con `.getTime()`).
+       `tsc --noEmit` PASS. `npm run build` PASS (31 rutas, incluida
+       `/admin` con las nuevas queries). `npx vitest run`: 77/77 (sin
+       cambios — no hay lógica JS pura nueva que testear unitariamente, los
+       13 conteos son filtros declarativos de PostgREST, no código a
+       validar con Vitest; la verificación real es contra datos, ver arriba).
+
+SIGUIENTE: QA completo sobre lo ya construido (F1-F9). Backups, runbook,
+           proyecto de producción, despliegue, dominio y Resend quedan para
+           el cierre de la fase, después de terminar el sistema funcional
+           completo (decisión explícita del usuario).
+```
 
 ---
 
