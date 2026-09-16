@@ -21,7 +21,7 @@ insert into auth.users (id, email, raw_app_meta_data) values
 -- ventana de atención de tienda -> responsible_party = STORE).
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 insert into public.products (id, code, name, default_warranty_days, warranty_conditions, warranty_exclusions) values
   ('f7100000-0000-0000-0000-000000000001', 'F7-P1', 'Producto F7', 365, 'Condiciones F7', array['Exclusión 1']);
@@ -85,7 +85,7 @@ insert into t7_ids values ('wday30', 'f7300000-0000-0000-0000-000000000002'), ('
 update public.serials set status = 'ACTIVATED' where serial in ('F7-SER-DAY30', 'F7-SER-DAY31');
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 select public.void_warranty((select id from t7_ids where label = 'wvoid'), 'serial equivocado');
 reset role;
 reset request.jwt.claims;
@@ -94,7 +94,7 @@ reset request.jwt.claims;
 -- open_claim — permisos y validaciones
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.open_claim((select id from public.warranties limit 1), 'motivo válido') $$,
@@ -199,7 +199,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select ok(
   (select count(*)::int from public.warranty_claims) >= 3,
@@ -224,7 +224,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.assign_claim(gen_random_uuid()) $$,
@@ -267,7 +267,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   format($$ select public.decide_claim('%s'::uuid, 'MAYBE', 'x', 'x') $$, (select id from t7_ids where label = 'claim_w1')),
@@ -325,7 +325,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   format($$ select public.close_claim('%s'::uuid) $$, (select id from t7_ids where label = 'wday30')),
@@ -386,7 +386,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.create_technical_report(gen_random_uuid(), 'diagnóstico', 'resultado', 'decisión') $$,
@@ -466,7 +466,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f7000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select ok(
   (select count(*)::int from public.technical_reports) >= 2,

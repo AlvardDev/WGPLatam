@@ -15,7 +15,7 @@ insert into auth.users (id, email, raw_app_meta_data) values
 
 -- Admin puede leer y actualizar ambas.
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"d0000000-0000-0000-0000-0000000000d1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"d0000000-0000-0000-0000-0000000000d1","role":"authenticated","aal":"aal2"}';
 
 select is((select count(*) from public.app_settings)::int, 1, 'admin ve app_settings');
 select is((select count(*) from public.notification_settings)::int, 1, 'admin ve notification_settings');

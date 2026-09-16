@@ -64,7 +64,7 @@ Separada de `app_settings` porque un vendedor no tiene por qué ver la lista de 
 
 Helpers en `private` (`SECURITY DEFINER`, `STABLE`, `set search_path = ''`), invocados como `(select private.fn())` para evaluarse una vez por consulta:
 
-- `private.is_admin()`: perfil activo con rol `admin` (desde la Fase 8, además `aal2`).
+- `private.is_admin()`: perfil activo con rol `admin` **y** sesión en `aal2` (segundo factor verificado, Fase 8). Sin `aal2` la función devuelve `false` aunque el rol sea admin — afecta de una sola vez a toda RLS y RPC que ya dependían de ella (F2-F7), sin tocar esos archivos.
 - `private.current_store_id()`: tienda del vendedor activo con tienda activa; si no, `NULL`.
 
 Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmediato.
@@ -257,7 +257,7 @@ Migración: `20260915162417_phase5_warranties.sql`.
 
 | RPC | Qué garantiza |
 |---|---|
-| `lookup_serial(code)` | Solo vendedor activo. Normaliza el código y busca por `serial` o `barcode`. Devuelve solo las columnas mínimas que necesita la pantalla de activación (no expone `serials`/`lots` completos — regla de mínimo dato de `CLAUDE.md`). 0 filas si no existe, nunca una excepción. |
+| `lookup_serial(code)` | Solo vendedor activo. Normaliza el código y busca por `serial` o `barcode`. Devuelve solo las columnas mínimas que necesita la pantalla de activación (no expone `serials`/`lots` completos — regla de mínimo dato de `CLAUDE.md`). 0 filas si no existe, nunca una excepción. Desde la Fase 8, hasta 30 llamadas/minuto por vendedor (`public.lookup_serial_attempts`, ventana fija); pasado el límite lanza excepción en vez de consultar `serials` — mitigación de enumeración de seriales. |
 | `activate_warranty(code, customer jsonb)` | Solo vendedor activo. Bloquea la fila del serial (`FOR UPDATE`) antes de decidir: `AVAILABLE→ACTIVATED` es la única transición permitida; rechaza `ACTIVATED`/`BLOCKED`/`VOID` con un mensaje específico por estado, y también producto/lote inactivo. Snapshotea `store_attention_days` desde `app_settings`. La concurrencia real (dos vendedores activando el mismo serial a la vez) la resuelve el lock de fila, no un chequeo de aplicación; el `UNIQUE` de `warranties.serial_id` es el respaldo. Reintento de red/doble clic: el segundo intento encuentra el serial ya `ACTIVATED` y se rechaza sin crear una segunda garantía — la idempotencia es la propia máquina de estados del serial, sin tabla ni clave de idempotencia aparte. |
 | `update_warranty_customer(warranty_id, customer jsonb)` | Solo el vendedor de la tienda dueña de la garantía, y solo si `now() < activated_at + 24h`. Único campo editable después de activar; auditado por el trigger genérico. Pasadas las 24h, la vía es `request_correction`/`decide_correction` (Fase 6, no implementado aquí). |
 

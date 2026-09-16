@@ -34,7 +34,7 @@ insert into auth.users (id, email, raw_app_meta_data) values
 -- AVAILABLE, para probar esas dos validaciones de activate_warranty.
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 insert into public.products (id, code, name, default_warranty_days, warranty_conditions, warranty_exclusions) values
   ('f5100000-0000-0000-0000-000000000001', 'F5-P1', 'Producto F5', 365, 'Condiciones F5', array['Exclusión 1']),
@@ -67,7 +67,7 @@ reset request.jwt.claims;
 -- lookup_serial
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select * from public.lookup_serial('F5-AVAIL-1') $$,
@@ -116,7 +116,7 @@ reset request.jwt.claims;
 -- activate_warranty — rechazos
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select * from public.activate_warranty('F5-AVAIL-1', '{"name":"Ana","national_id":"V1","whatsapp":"+584121234567"}'::jsonb) $$,
@@ -342,7 +342,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select is(
   (select count(*)::int from public.warranties),

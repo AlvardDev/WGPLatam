@@ -24,7 +24,7 @@ insert into public.lots (id, product_id, code, warranty_days, is_active) values
   ('e4200000-0000-0000-0000-000000000002', 'e4100000-0000-0000-0000-000000000001', 'LOTE-INACTIVO', 365, false);
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"e4000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"e4000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 -- Un serial ya existente (vía la RPC normal de Fase 2), para forzar más
 -- adelante un caso real de DUPLICATE_EXISTING/CONFLICT.

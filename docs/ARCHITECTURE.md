@@ -162,7 +162,7 @@ Este principio se revisa en cada fase que toque una tabla nueva: antes de dar SE
   Si el paso 2 o el 3 falla, el server action borra el usuario recién creado (`deleteUser`, best-effort) para no dejar una cuenta a medio aprovisionar. Desactivar/reactivar un vendedor sigue el mismo principio: `admin_set_seller_active(user_id, is_active)` por RPC (autoridad de RLS, efecto inmediato) + `updateUserById(user_id, { ban_duration })` con el cliente de service role para matar su refresh token (ver `docs/PROJECT-PLAN.md`).
 - **Sesión**: `proxy.ts` y los layouts `admin/`/`tienda/` verifican con `supabase.auth.getClaims()`, nunca con `getSession()`. `proxy.ts` trata cualquier error de `getClaims()` (Supabase caído, mal configurado) como no autenticado — cierra en falso, nunca dejaría pasar una ruta protegida por un fallo de red.
 - Los layouts `admin/`/`tienda/` repiten la comprobación de rol/`is_active` contra `profiles` (una consulta más) como segundo checkpoint de UX; la autoridad real sigue siendo RLS.
-- **MFA**: ver `docs/SECURITY.md`, sección "MFA" (obligatorio para admin desde la Fase 8; `private.is_admin()` ya deja el comentario de dónde añadir la exigencia de `aal2`).
+- **MFA**: ver `docs/SECURITY.md`, sección "MFA" — obligatorio para admin, implementado en la Fase 8 (`private.is_admin()` exige `aal2`; `proxy.ts` redirige a `/mfa`; `app/(auth)/mfa/mfa-gate.tsx` decide enrolar o desafiar).
 
 ## Administración de la aplicación vs. propiedad de infraestructura
 

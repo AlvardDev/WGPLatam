@@ -27,7 +27,7 @@ insert into public.products (id, code, name, default_warranty_days) values
   ('e3100000-0000-0000-0000-000000000002', 'S200', 'Producto S200', 365);
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"e3000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"e3000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select lives_ok(
   $$ select public.create_serial('e3100000-0000-0000-0000-000000000001', 'e3200000-0000-0000-0000-000000000001', '  abc-001  ', '750000001') $$,

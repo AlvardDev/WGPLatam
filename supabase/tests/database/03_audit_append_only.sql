@@ -40,7 +40,7 @@ reset request.jwt.claims;
 
 -- Un usuario autenticado sí puede, pero solo con acciones de la allow-list.
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"c0000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"c0000000-0000-0000-0000-00000000000c","role":"authenticated","aal":"aal2"}';
 
 select lives_ok(
   $$ select public.log_audit_event('login') $$,

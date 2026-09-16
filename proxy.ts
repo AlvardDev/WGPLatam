@@ -76,8 +76,23 @@ export async function proxy(request: NextRequest) {
   }
   const role = (claims?.app_metadata as { role?: "admin" | "seller" } | undefined)?.role ?? null;
 
+  // MFA obligatorio para admin (Fase 8; docs/SECURITY.md, "MFA"). Vendedores
+  // quedan fuera a propósito: es opcional para ellos en el MVP. Igual que
+  // getClaims() arriba, si la llamada falla se trata como "todavía en
+  // aal1" — cierra en falso, nunca deja pasar a un admin sin verificar.
+  let requiresMfa = false;
+  if (claims && role === "admin") {
+    try {
+      const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      requiresMfa = !data || data.currentLevel !== "aal2";
+    } catch {
+      requiresMfa = true;
+    }
+  }
+
   const { pathname } = request.nextUrl;
   const area = areaForPath(pathname);
+  const isMfaPage = pathname === "/mfa";
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/recuperar") ||
@@ -92,8 +107,17 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   };
 
-  if (area && !claims) {
+  if ((area || isMfaPage) && !claims) {
     return redirectWithCsp("/login", { next: pathname });
+  }
+
+  if (isMfaPage && claims) {
+    if (role !== "admin") return redirectWithCsp(roleHomePath(role));
+    if (!requiresMfa) return redirectWithCsp("/admin");
+  }
+
+  if (area === "admin" && requiresMfa && !isMfaPage) {
+    return redirectWithCsp("/mfa");
   }
 
   if (area && claims && role !== area) {
@@ -101,7 +125,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthPage && claims && role) {
-    return redirectWithCsp(roleHomePath(role));
+    return redirectWithCsp(requiresMfa ? "/mfa" : roleHomePath(role));
   }
 
   response.headers.set("Content-Security-Policy", csp);

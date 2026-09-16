@@ -14,9 +14,175 @@
 | 5 | Activación de garantías | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 6 | Correcciones + comprobantes + email | **Completada y verificada contra el proyecto real (2026-09-16)** |
 | 7 | Reclamos + reportes técnicos | **Completada y verificada contra el proyecto real (2026-09-16)** |
-| 8 | Visor de auditoría + seguridad avanzada + MFA | Pendiente |
+| 8 | Visor de auditoría + seguridad avanzada + MFA | **Completada y verificada contra el proyecto real (2026-09-16)** |
 | 9 | Performance + QA + producción | Pendiente |
 | 10 | Propiedad intelectual + licencia + documentación final | Pendiente |
+
+---
+
+## Fase 8 — Visor de auditoría + MFA + throttle (checkpoint definitivo)
+
+```text
+FASE: 8 — Visor de auditoría, MFA, CSP y headers, throttles
+ESTADO: COMPLETA. Migración aplicada contra el proyecto Supabase real (SQL
+        Editor del dashboard, autorización explícita del usuario) y pgTAP
+        corrido de verdad contra ese mismo proyecto: 12_mfa_and_throttle.sql
+        (8/8) y 11_claims_and_reports.sql re-verificado con las fixtures de
+        aal2 (55/55) — el caso de mayor riesgo de regresión (el que más
+        RPC/RLS dependientes de is_admin() ejercita). 1 bug real de test
+        encontrado y corregido (ver PROBLEMAS), 0 bugs de producto.
+
+COMPLETADO:
+- Alcance tomado de docs/PROJECT-PLAN.md (fila F8: "Visor de auditoría,
+  eventos de login/logout, MFA, CSP y headers, throttles") y
+  docs/SECURITY.md, "MFA". Al analizar la fase se encontró que 3 de los 5
+  entregables ya existían desde la Fase 1 (eventos de login/logout vía
+  `log_audit_event` en `lib/actions/auth.ts`; CSP con nonce en `proxy.ts`;
+  headers estáticos en `next.config.ts`) y que el visor de auditoría ya
+  tenía una versión mínima (`app/admin/auditoria/page.tsx`, con un
+  comentario explícito señalando el "módulo avanzado" como trabajo de esta
+  fase) — F8 completó lo que realmente faltaba: MFA, el throttle, y el
+  visor avanzado. Nada de esto se inventó: cada pieza ya estaba prevista en
+  el plan o en comentarios dejados a propósito en fases anteriores.
+- Migración `20260916100000_phase8_mfa_and_throttle.sql`: `private.is_admin()`
+  reemplazada para exigir `aal2` además del rol admin activo (único punto
+  de cambio, tal como avisaba su comentario desde la Fase 1 — protege de
+  una sola vez toda la RLS/RPC que ya dependía de ella en F2-F7, sin tocar
+  esos archivos). `public.lookup_serial` reemplazada para agregar throttle
+  de 30 llamadas/minuto por vendedor (`public.lookup_serial_attempts`,
+  ventana fija, sin política RLS ni GRANT directo — inalcanzable desde la
+  API salvo por la propia función `SECURITY DEFINER`, mismo patrón que
+  `audit_logs` para `UPDATE`/`DELETE`).
+- MFA: `proxy.ts` calcula `requiresMfa` para admin (`getAuthenticatorAssuranceLevel()`,
+  cierra en falso si la llamada falla) y redirige a `/mfa` antes de dejar
+  entrar a `/admin`; vendedores quedan fuera a propósito (opcional en el
+  MVP, decidido explícitamente al alcance esta fase). `app/(auth)/mfa/mfa-gate.tsx`
+  (client component, usa `lib/supabase/client.ts` igual que el import
+  wizard de F3 porque `enroll()`/`challengeAndVerify()` actualizan la
+  sesión en el propio cliente): decide enrolar (sin factor verificado —
+  limpia cualquier factor TOTP abandonado sin verificar antes de generar
+  uno nuevo) o desafiar (ya tiene uno), TOTP vía QR (data URI que devuelve
+  Supabase, sin librería de QR) + código de 6 dígitos
+  (`lib/validation/mfa.ts`, `totpCodeSchema`).
+- Visor de auditoría avanzado (`app/admin/auditoria/page.tsx`): filtros
+  (acción, entidad, actor, rango de fechas) + paginación por keyset
+  (`occurred_at desc, id desc`, mismo patrón que `app/admin/seriales/page.tsx`),
+  join a `profiles` para mostrar el nombre del actor, y
+  `audit-detail-dialog.tsx` (nuevo) para ver `old_data`/`new_data`/`metadata`
+  de cada evento — antes invisibles en el visor mínimo de F1.
+- Dashboard de Supabase (verificado, no tocado salvo lo indicado): TOTP ya
+  estaba `Enabled` en Authentication → Multi-Factor (nada que activar).
+  "Prevent use of leaked passwords" sigue `Disabled` — es exclusivo del
+  plan Pro y el proyecto está en Free (`docs/SECURITY.md`, `PROJECT-PLAN.md`
+  sección N ya lo contempla como parte del costo de producción); queda
+  documentado como limitación de plan, no como pendiente de código.
+  Hallazgo aparte (fuera del alcance de F8, autorizado por el usuario al
+  reportarlo): "Allow new users to sign up" estaba en `ON`, contradiciendo
+  la regla ya documentada desde F1 ("Registro público deshabilitado en
+  Supabase Auth") — desactivado y verificado que persiste tras recargar.
+
+TESTS:
+- Lint (`npm run lint`): PASS (1 warning de `@next/next/no-img-element`
+  suprimido explícitamente con `eslint-disable-next-line` — el QR es un
+  data URI generado por Supabase Auth, `next/image` no aporta nada ahí).
+- Typecheck (`tsc --noEmit`): PASS.
+- Build (`next build`): PASS — 31 rutas compilan, incluida `/mfa`.
+- Vitest: PASS — **77/77** (73 previos + 4 nuevos de `totpCodeSchema`).
+- **pgTAP contra el proyecto real**: migración aplicada vía SQL Editor del
+  dashboard (autorización explícita del usuario, mismo método que F2-F7).
+  `12_mfa_and_throttle.sql`: **8/8** — `is_admin()` llamado directo en
+  aal1/aal2/vendedor-con-aal2, una integración real vía RLS de `audit_logs`
+  (0 filas en aal1, filas visibles en aal2 — no solo la función aislada), y
+  el throttle (30 llamadas dentro del límite, la 31 rechazada, un segundo
+  vendedor con su propio contador). `11_claims_and_reports.sql` (F7,
+  re-verificado con las fixtures de admin actualizadas a `aal2`): **55/55**
+  — es el archivo con más RPC/RLS dependientes de `is_admin()`, así que es
+  la evidencia más fuerte de que el cambio compartido no rompió nada de
+  F2-F7. Las fixtures de admin en `02` a `10` se actualizaron con el mismo
+  cambio mecánico de una línea (agregar `"aal":"aal2"` al JWT simulado) por
+  la misma razón, pero no se re-ejecutaron una por una contra el proyecto
+  real en esta sesión — queda como verificación pendiente si se quiere
+  cobertura completa (ver RIESGOS).
+- **Supabase Advisors**: revisados después de aplicar la migración. 1 error
+  preexistente (`public._bench_log` sin RLS, deuda de F3, sin cambios) y 27
+  warnings (misma categoría ya aceptada desde F2: funciones `SECURITY
+  DEFINER` ejecutables por diseño — sin warnings nuevos, `is_admin()` y
+  `lookup_serial` fueron reemplazadas, no agregadas). 1 hallazgo INFO nuevo
+  y esperado: "RLS Enabled No Policy" en `public.lookup_serial_attempts` —
+  es la protección buscada (RLS habilitado sin ninguna política = ni una
+  fila alcanzable desde la API salvo por la función `SECURITY DEFINER`),
+  no un problema.
+
+PROBLEMAS (encontrados durante la verificación, corregidos antes de cerrar
+la fase):
+1. Mismo bloqueo de red ya conocido (F3-F7): el CLI de Supabase no puede
+   conectarse al proyecto real desde esta máquina. Verificado por SQL
+   Editor del dashboard con autorización explícita del usuario.
+2. El Editor SQL del dashboard ejecuta todo el script pegado dentro de una
+   única transacción implícita (el `begin;`/`rollback;` propio del archivo
+   queda anidado, no es la transacción real) — un `rollback;` al final del
+   script deshace también cualquier `create table`/`insert` hecho *antes*
+   del `begin;` en ese mismo pegado, algo que no ocurre corriendo el mismo
+   archivo con `pg_prove`/`supabase test db`. Se resolvió sin tocar el
+   método de F6/F7 (la tabla temporal `tap_results`): en vez de consultar
+   esa tabla *después* del `rollback`, se agregó un bloque `do $$ ... end
+   $$` que agrega los resultados y hace `raise exception` con el resumen
+   ("N de M pasaron") *antes* del rollback — la excepción aborta la
+   transacción igual que un rollback (cero datos de prueba persisten) y el
+   mensaje de error queda visible en el panel de resultados sin depender
+   de que el Editor SQL muestre el resultado de la última sentencia.
+3. **Bug real de test (no de producto), detectado por la propia corrida**:
+   el fixture original de la prueba de throttle generaba 30 llamadas a
+   `lookup_serial` con `select count(*) from generate_series(1,30) gs,
+   lateral (select * from public.lookup_serial(...)) l` — el plan de
+   Postgres no garantiza 30 invocaciones reales de una función `VOLATILE`
+   ahí (la corrida real mostró que la búsqueda 31 no era rechazada,
+   exponiendo que el contador nunca llegó a 30). Corregido reemplazando el
+   fixture por un `do $$ begin for i in 1..30 loop perform
+   public.lookup_serial(...); end loop; end $$` (30 invocaciones
+   explícitas, sin ambigüedad de planificador) — con ese cambio, 8/8.
+   `public.lookup_serial_attempts` y la lógica de conteo del producto no
+   se tocaron; el bug era enteramente del fixture del test.
+
+RIESGOS:
+- Igual que F2-F7: sin E2E de navegador autenticado, cuota de Supabase
+  ("Exceeding usage limits" sigue visible en el dashboard).
+- `leaked_password_protection` sigue sin poder activarse en el plan Free
+  del proyecto (exclusivo de Pro) — riesgo de negocio ya cuantificado en
+  `PROJECT-PLAN.md`, sección N, no una tarea de código pendiente.
+- Verificación de pgTAP contra el proyecto real en esta fase cubrió el
+  archivo nuevo (12) y el más complejo de los ya existentes (11, F7) como
+  evidencia representativa del cambio compartido en `is_admin()`; los
+  demás archivos (02-10) recibieron el mismo cambio mecánico de una línea
+  en sus fixtures pero no se re-corrieron individualmente contra el
+  proyecto real en esta sesión.
+- Throttle de `lookup_serial`: el límite (30/min) es un valor por defecto
+  razonable, no un requisito de negocio definido — ajustable si en el uso
+  real resulta muy bajo (escaneo rápido) o muy alto (mitigación débil).
+
+DECISIONES:
+- MFA solo obligatorio para admin, sin UI de enrolamiento opcional para
+  vendedor en esta fase — decidido explícitamente con el usuario al
+  analizar el alcance; coherente con "opcional en el MVP" de
+  `docs/SECURITY.md`, que no pide construir nada para vendedores todavía.
+- Throttle de `lookup_serial` implementado en esta fase (el plan lo dejaba
+  condicional, "si hace falta") — decidido explícitamente con el usuario;
+  ventana fija por simplicidad (`ponytail` documentado en la migración),
+  no sliding window ni token bucket.
+- `/mfa` es una sola página que decide enrolar vs. desafiar en el cliente
+  (en vez de dos rutas separadas `/mfa/activar` y `/mfa/verificar`) —
+  menos superficie de proxy.ts que mantener sincronizada con el estado
+  real de MFA del usuario.
+- "Allow new users to sign up" desactivado en el Dashboard a pedido
+  explícito del usuario, aunque es un hallazgo fuera del alcance nominal
+  de F8 — aplicaba una regla ya decidida y documentada desde F1, no una
+  decisión nueva de esta fase.
+
+SIGUIENTE:
+- Commit pendiente de aprobación explícita del usuario.
+- Fase 9 — Performance + QA + producción. **No iniciar sin aprobación
+  explícita del usuario**, ni hacer commit de F8 sin esa aprobación.
+```
 
 ---
 

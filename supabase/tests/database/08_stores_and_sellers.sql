@@ -43,7 +43,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.admin_finalize_seller_profile(
@@ -120,7 +120,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.admin_set_seller_active('f0000000-0000-0000-0000-000000000000', false) $$,
@@ -159,7 +159,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f4000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select lives_ok(
   $$ select public.admin_set_seller_active('f4000000-0000-0000-0000-0000000000a3', true) $$,

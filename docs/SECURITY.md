@@ -28,7 +28,7 @@
 | Modificar garantías históricas | Trigger de inmutabilidad sobre fechas y snapshot |
 | Borrado de auditoría | Trigger que bloquea UPDATE/DELETE incluso a `service_role` |
 | Fuerza bruta de login | Rate limits de Supabase Auth + MFA en admin |
-| Enumeración de seriales | `lookup_serial` exacto con datos mínimos; throttle por usuario si hace falta (Fase 8) |
+| Enumeración de seriales | `lookup_serial` exacto con datos mínimos; throttle de 30 intentos/minuto por usuario (`lookup_serial_attempts`, Fase 8) |
 | Archivos maliciosos o enormes | Parseo en el cliente; revalidación de cada fila en el servidor; límites de tamaño y filas; solo admin |
 | Headers | HSTS, `frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy: camera=(self)`, `X-Content-Type-Options` (`next.config.ts`); CSP con nonce por request (`proxy.ts`, `script-src 'strict-dynamic'`) — implica renderizado dinámico en toda la app (`export const dynamic = "force-dynamic"` en `app/layout.tsx`), ver `node_modules/next/dist/docs/.../content-security-policy.md` |
 | Datos personales (ID, WhatsApp) | Aviso de privacidad en el comprobante, acceso mínimo por tienda, retención definida con asesoría legal (Fase 10) |
@@ -64,12 +64,29 @@ Esto aplica en particular a `activate_warranty`, `update_warranty_customer`, `re
 
 **Fase 7**: `open_claim`, `assign_claim`, `decide_claim`, `close_claim`, `create_technical_report` — checklist aplicado (`search_path=''`, revoke explícito de `anon`/`public`, re-verificación de rol/tienda contra `profiles`, sin fechas ni `store_id` confiados a ciegas — `store_id`/`responsible_party` se derivan del perfil y de `warranties`, nunca de un parámetro). Máquina de estados `OPEN → UNDER_REVIEW → APPROVED|REJECTED → CLOSED` con cada transición en su propia RPC, cada una re-verificando el estado anterior con `SELECT ... FOR UPDATE` antes de escribir (mismo patrón que `decide_correction`, Fase 6). `technical_reports` sin política `SELECT` para vendedor (mínimo dato necesario, `docs/ARCHITECTURE.md`) — ni siquiera de su propia tienda. Tests pgTAP: **55/55 contra el proyecto real** (`11_claims_and_reports.sql`, corrido vía SQL Editor del dashboard con autorización explícita del usuario — mismo método que F2-F6) — intentan las 5 RPC como vendedor (rechazadas), validan cada mensaje de error, y verifican el límite día 30 vs 31 de `responsible_party`, la unicidad de reclamo abierto por garantía, y que `technical_reports` es invisible para el vendedor incluso de su propia tienda. Supabase Advisors revisados después: sin hallazgos nuevos atribuibles a estas 2 tablas/5 funciones.
 
+**Fase 8**: `private.is_admin()` reemplazada para exigir `aal2` además del rol — no es una RPC nueva, es el checklist aplicándose retroactivamente a las ~25 funciones que ya la usaban (F2-F7): todas quedan protegidas por el mismo cambio, sin editar sus archivos. `lookup_serial` reemplazada para añadir el throttle (`lookup_serial_attempts`, sin política RLS ni GRANT directo — inalcanzable desde la API salvo por la propia función `SECURITY DEFINER`, mismo patrón que `audit_logs` para `UPDATE`/`DELETE`). Como consecuencia del cambio en `is_admin()`, las fixtures de admin de `02` a `11` (que ya estaban escritas y confirmadas contra el proyecto real en F2-F7) se actualizaron para incluir `"aal":"aal2"` en su JWT simulado — sin eso, is_admin() empezaría a rechazar esas mismas pruebas que hoy pasan; no es una reescritura de esas fases, es la fixture reflejando la nueva realidad de una función compartida. Tests pgTAP contra el proyecto real (SQL Editor del dashboard, autorización explícita del usuario — mismo método que F2-F7): `12_mfa_and_throttle.sql`, nuevo — **8/8** (`is_admin()` en aal1/aal2/vendedor-con-aal2 llamada directamente, una integración real vía RLS de `audit_logs` con 0 filas en aal1 y filas visibles en aal2 — no solo la función aislada —, y el throttle: 30 llamadas dentro del límite vía un loop explícito, la 31 rechazada, un segundo usuario con su propio contador); `11_claims_and_reports.sql` (F7, re-verificado con las fixtures de aal2) — **55/55**, elegido como el archivo con más superficie dependiente de `is_admin()` para confirmar que el cambio compartido no rompió nada. Las fixtures de `02` a `10` recibieron el mismo cambio mecánico pero no se re-corrieron individualmente contra el proyecto real en esta sesión (ver `docs/PROGRESS.md`, checkpoint F8, "RIESGOS").
+
 ## MFA
 
 - TOTP (Google Authenticator, Authy y similares), gratis en Supabase Auth.
-- **Admin: obligatorio** (Fase 8). Sin factor → enrolamiento forzado; `aal1` → desafío. `private.is_admin()` exige `aal2`, así que un token sin segundo factor no puede operar ni llamando la API directamente.
-- **Vendedores: opcional** en el MVP (dispositivos compartidos, rotación, fricción). Su alcance ya está limitado a una tienda.
-- **Recuperación**: mantener un segundo admin; procedimiento documentado para que el dueño del proyecto Supabase elimine el factor desde el dashboard.
+- **Admin: obligatorio** (implementado en la Fase 8). `private.is_admin()` exige `aal2` además del rol —
+  migración `20260916100000_phase8_mfa_and_throttle.sql`, único punto de cambio (afecta de una sola vez
+  a toda RLS/RPC que ya dependía de `is_admin()` desde F2-F7, sin tocar esos archivos). `proxy.ts` hace
+  la parte de UX: un admin sin `aal2` es redirigido a `/mfa`, que decide en el cliente si toca enrolar
+  (sin factor verificado, vía `supabase.auth.mfa.enroll`) o desafiar (ya tiene uno, vía
+  `challengeAndVerify`) — ver `app/(auth)/mfa/mfa-gate.tsx`. La autorización real sigue siendo
+  `is_admin()` en Postgres; el redirect de `proxy.ts` es solo conveniencia, igual que el resto de la CSP.
+- **Vendedores: opcional** en el MVP (dispositivos compartidos, rotación, fricción). Su alcance ya está
+  limitado a una tienda. Sin UI de enrolamiento propia por ahora (decisión explícita al cerrar F8: fuera
+  de alcance mientras nadie lo pida).
+- **Recuperación**: mantener un segundo admin; procedimiento documentado para que el dueño del proyecto
+  Supabase elimine el factor desde el dashboard.
+- **TOTP ya está habilitado en el dashboard del proyecto real** (Authentication → Multi-Factor →
+  "TOTP (App Authenticator)": `Enabled`) — verificado el 2026-09-16 con autorización explícita del
+  usuario; no fue necesario cambiar nada ahí. `supabase/config.toml` trae `enroll_enabled`/
+  `verify_enabled` en `false`, pero es solo la plantilla del stack local (el CLI no puede empujar
+  config al proyecto real desde esta red, mismo bloqueo que las migraciones) — no refleja el estado
+  real, que es el que manda.
 
 ## Backup y recuperación (Disaster Recovery)
 
@@ -97,4 +114,4 @@ Los seriales no están asignados a tiendas: cualquier tienda puede activar cualq
 | 5 | Vendedor sin acceso directo a `warranties` fuera de RLS ni a `serials` (solo `lookup_serial`); tienda y vendedor derivados del perfil (`current_store_id()`/`auth.uid()`), nunca de un parámetro; fecha del servidor (`now()`), nunca del cliente; doble activación imposible (lock de fila + `UNIQUE` de `serial_id`); edición de cliente bloqueada pasadas 24h y aislada por tienda; snapshot inmutable ante cualquier rol, incluso UPDATE directo bypaseando la RPC; checklist de `SECURITY DEFINER` aplicado a las 3 RPC (36 tests pgTAP reales contra el proyecto — ver `DATABASE.md`, Fase 5) |
 | 6 | Implementado: edición directa bloqueada pasadas 24h (RPC re-verificado, F5); corrección solo pasadas 24h y solo sobre garantía no anulada; solo admin decide correcciones, con detección de valor cambiado entretanto; solo admin anula, motivo obligatorio, sin doble anulación, sin DELETE físico; PDF con sesión del usuario (RLS decide, otra tienda → sin fila → 404); outbox (`claim_notifications`/`complete_notification`) inalcanzable para cualquier rol de la API, incluido admin — 54/55 pgTAP reales contra el proyecto, ver `PHASE-6-REVIEW.md`. Pendiente de esta fase (no del alcance pedido): `technical_reports` es F7 |
 | 7 | Reclamos aislados por tienda; solo admin decide; `responsible_party` congelado al abrir, no recalculado después |
-| 8 | Admin en `aal1` no puede operar; headers presentes; simulacro de restauración de backup documentado |
+| 8 | Implementado: admin en `aal1` rechazado por `is_admin()` y por RLS real (`audit_logs`), verificado directo y como vendedor-con-aal2 (`12_mfa_and_throttle.sql`); throttle de `lookup_serial` (30/min, contador por usuario); headers y CSP (implementados desde F1, ver "Riesgos y mitigaciones"). Pendiente de F9: simulacro de restauración de backup |

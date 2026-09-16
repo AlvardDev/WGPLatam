@@ -14,7 +14,7 @@ insert into auth.users (id, email, raw_app_meta_data) values
     jsonb_build_object('role', 'seller', 'store_id', 'e2000000-0000-0000-0000-00000000000a'));
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"e2000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"e2000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select lives_ok(
   $$ insert into public.products (code, name, default_warranty_days) values ('  x100  ', 'Producto X100', 365) $$,

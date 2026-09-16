@@ -27,7 +27,7 @@ insert into auth.users (id, email, raw_app_meta_data) values
 -- Fixtures de catálogo + configuración de notificaciones (como admin).
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 insert into public.products (id, code, name, default_warranty_days, warranty_conditions, warranty_exclusions) values
   ('f6100000-0000-0000-0000-000000000001', 'F6-P1', 'Producto F6', 365, 'Condiciones F6', array['Exclusión 1']);
@@ -116,7 +116,7 @@ select is(
 -- request_correction — validaciones
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.request_correction((select id from public.warranties limit 1), 'customer_name', 'X', 'motivo largo suficiente') $$,
@@ -222,7 +222,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select public.decide_correction(gen_random_uuid(), 'MAYBE', null) $$,
@@ -292,7 +292,7 @@ reset request.jwt.claims;
 update public.warranties set customer_whatsapp = '+584128888888' where id = (select id from t6_ids where label = 'w2');
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   format($$ select public.decide_correction(
@@ -335,7 +335,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   format($$ select public.void_warranty('%s'::uuid, '') $$, (select id from t6_ids where label = 'w3')),
@@ -421,7 +421,7 @@ reset role;
 reset request.jwt.claims;
 
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select ok(
   (select count(*)::int from public.warranty_corrections) >= 4,
@@ -436,7 +436,7 @@ reset request.jwt.claims;
 -- claim_notifications/complete_notification (solo service_role).
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"f6000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select throws_like(
   $$ select * from public.claim_notifications(10) $$,
