@@ -38,10 +38,22 @@ reset request.jwt.claims;
 -- admin: acceso global
 -- ---------------------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims to '{"sub":"a0000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims to '{"sub":"a0000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
 
 select is((select count(*) from public.stores)::int, 2, 'admin ve todas las tiendas');
-select is((select count(*) from public.profiles)::int, 3, 'admin ve todos los perfiles');
+-- count(*) global en vez de filtrado por los 3 ids de este fixture: en el
+-- proyecto real ya existe al menos un perfil admin real ajeno a este test
+-- (verificado en vivo, ver docs/PROGRESS.md), así que un conteo global es
+-- frágil. Se filtra por los ids que este test mismo insertó arriba.
+select is(
+  (select count(*) from public.profiles where id in (
+    'a0000000-0000-0000-0000-0000000000a1',
+    'a0000000-0000-0000-0000-0000000000a2',
+    'a0000000-0000-0000-0000-0000000000a3'
+  ))::int,
+  3,
+  'admin ve todos los perfiles de este fixture'
+);
 select ok((select private.is_admin()), 'private.is_admin() true para el admin');
 select is((select private.current_store_id()), null, 'private.current_store_id() es null para un admin');
 

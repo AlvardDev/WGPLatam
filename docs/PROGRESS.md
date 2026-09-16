@@ -24,13 +24,15 @@
 
 ```text
 FASE: 8 — Visor de auditoría, MFA, CSP y headers, throttles
-ESTADO: COMPLETA. Migración aplicada contra el proyecto Supabase real (SQL
-        Editor del dashboard, autorización explícita del usuario) y pgTAP
-        corrido de verdad contra ese mismo proyecto: 12_mfa_and_throttle.sql
-        (8/8) y 11_claims_and_reports.sql re-verificado con las fixtures de
-        aal2 (55/55) — el caso de mayor riesgo de regresión (el que más
-        RPC/RLS dependientes de is_admin() ejercita). 1 bug real de test
-        encontrado y corregido (ver PROBLEMAS), 0 bugs de producto.
+ESTADO: COMPLETA, verificación de pgTAP 100% cerrada (02-12, ver actualización
+        2026-09-16 abajo). Migración aplicada contra el proyecto Supabase
+        real (SQL Editor del dashboard, autorización explícita del usuario)
+        y los 11 archivos de pgTAP corridos de verdad contra ese mismo
+        proyecto, todos en verde: **232/232** (02 a 10) + 55/55 (11) + 8/8
+        (12). 3 bugs reales de test encontrados y corregidos (ver PROBLEMAS),
+        1 bug real de producto (mensaje del trigger de inmutabilidad de
+        garantías con tildes perdidas en la función desplegada — corregido
+        con una migración de solo texto), 0 bugs de lógica de producto.
 
 COMPLETADO:
 - Alcance tomado de docs/PROJECT-PLAN.md (fila F8: "Visor de auditoría,
@@ -144,18 +146,42 @@ la fase):
    `public.lookup_serial_attempts` y la lógica de conteo del producto no
    se tocaron; el bug era enteramente del fixture del test.
 
+**Actualización 2026-09-16 (sesión posterior) — cierre del cabo suelto pendiente:**
+los archivos `02` a `10` se re-corrieron individualmente contra el proyecto
+real con la técnica de `12_mfa_and_throttle.sql` (`do $$ ... raise exception
+$$`, ver docs/SECURITY.md). Antes de correr nada se encontró que `02_rls_isolation.sql`
+no había recibido el cambio mecánico de `"aal":"aal2"` que sí llegó a `03`-`10`
+en la sesión de F8 — corregido. Resultado tras el fix: **02 14/14, 03 9/9, 04
+8/8, 05 19/19, 06 24/24, 07 46/46, 08 21/21, 09 36/36, 10 55/55** — 232/232,
+ningún fallo atribuible a `is_admin()`/aal2. Dos hallazgos reales adicionales,
+ninguno causado por el cambio de F8, ambos corregidos con aprobación explícita
+del usuario:
+4. **Bug de test**: `02_rls_isolation.sql`, "admin ve todos los perfiles"
+   asumía `count(*) = 3` sobre `public.profiles`, pero el proyecto real ya
+   tiene al menos un perfil admin ajeno a este fixture. Corregido filtrando
+   el conteo por los 3 ids que el propio test inserta, en vez de un
+   `count(*)` global sobre toda la tabla.
+5. **Bug real de producto (único hallado en toda la fase)**: la función
+   desplegada `private.warranties_guard_immutable()` (Fase 5) tenía su
+   mensaje de excepción sin tildes ("...de anulacion...despues de activar...")
+   mientras el archivo fuente de la migración
+   (`20260915162417_phase5_warranties.sql`) siempre tuvo el texto correcto
+   ("...de anulación...después de activar...") — divergencia de codificación,
+   casi seguro arrastrada de cuando esa migración se aplicó originalmente por
+   el mismo método de pegar en el SQL Editor del dashboard. Sin impacto
+   funcional (el trigger seguía bloqueando la inmutabilidad correctamente,
+   solo el texto del mensaje estaba mal). Corregido con una migración nueva,
+   solo de texto: `20260916110000_fix_warranties_guard_message_encoding.sql`
+   (`create or replace function`, mismo cuerpo, aplicada vía SQL Editor con
+   autorización explícita del usuario). Verificado en vivo: 09 pasó de 35/36
+   a 36/36 tras aplicarla.
+
 RIESGOS:
 - Igual que F2-F7: sin E2E de navegador autenticado, cuota de Supabase
   ("Exceeding usage limits" sigue visible en el dashboard).
 - `leaked_password_protection` sigue sin poder activarse en el plan Free
   del proyecto (exclusivo de Pro) — riesgo de negocio ya cuantificado en
   `PROJECT-PLAN.md`, sección N, no una tarea de código pendiente.
-- Verificación de pgTAP contra el proyecto real en esta fase cubrió el
-  archivo nuevo (12) y el más complejo de los ya existentes (11, F7) como
-  evidencia representativa del cambio compartido en `is_admin()`; los
-  demás archivos (02-10) recibieron el mismo cambio mecánico de una línea
-  en sus fixtures pero no se re-corrieron individualmente contra el
-  proyecto real en esta sesión.
 - Throttle de `lookup_serial`: el límite (30/min) es un valor por defecto
   razonable, no un requisito de negocio definido — ajustable si en el uso
   real resulta muy bajo (escaneo rápido) o muy alto (mitigación débil).
