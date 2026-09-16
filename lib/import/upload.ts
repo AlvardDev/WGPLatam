@@ -66,15 +66,27 @@ export async function uploadFile(
 
 export type ImportCounts = { total: number; valid: number; duplicate: number; error: number };
 
+// count(*) por estado en vez de traer cada fila: una importación real puede
+// tener hasta 1M filas (docs/DATABASE.md), y esto corre en el navegador
+// ("use client", arriba) — traer todo acá era exactamente el "cargar
+// grandes datasets completos en el frontend" que el proyecto prohíbe, y
+// además daba un conteo silenciosamente incorrecto por el tope de 1000
+// filas por respuesta de PostgREST (solo contaba las primeras 1000).
 export async function fetchPreviewCounts(importId: string): Promise<ImportCounts> {
   const supabase = createClient();
-  const { data } = await supabase.from("serial_import_rows").select("status").eq("import_id", importId);
-  const rows = data ?? [];
+  const base = () => supabase.from("serial_import_rows").select("id", { count: "exact", head: true }).eq("import_id", importId);
+  const [total, valid, duplicateInFile, duplicateExisting, error] = await Promise.all([
+    base(),
+    base().eq("status", "VALID"),
+    base().eq("status", "DUPLICATE_IN_FILE"),
+    base().eq("status", "DUPLICATE_EXISTING"),
+    base().eq("status", "ERROR"),
+  ]);
   return {
-    total: rows.length,
-    valid: rows.filter((r) => r.status === "VALID").length,
-    duplicate: rows.filter((r) => r.status === "DUPLICATE_IN_FILE" || r.status === "DUPLICATE_EXISTING").length,
-    error: rows.filter((r) => r.status === "ERROR").length,
+    total: total.count ?? 0,
+    valid: valid.count ?? 0,
+    duplicate: (duplicateInFile.count ?? 0) + (duplicateExisting.count ?? 0),
+    error: error.count ?? 0,
   };
 }
 

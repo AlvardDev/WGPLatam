@@ -124,10 +124,56 @@ TESTS: `npm run lint` PASS (1 fix real: `Date.now()` directo en el cuerpo
        13 conteos son filtros declarativos de PostgREST, no código a
        validar con Vitest; la verificación real es contra datos, ver arriba).
 
-SIGUIENTE: QA completo sobre lo ya construido (F1-F9). Backups, runbook,
-           proyecto de producción, despliegue, dominio y Resend quedan para
-           el cierre de la fase, después de terminar el sistema funcional
-           completo (decisión explícita del usuario).
+QA completo (2026-09-16, misma sesión):
+- Automatizado: `npm run lint`, `tsc --noEmit`, `npm run build` (31 rutas),
+  `npx vitest run` (77/77), `npx playwright test` (4/4 — smoke sin
+  credenciales: login visible, `/admin`/`/tienda`/`/` redirigen a `/login`
+  sin sesión; E2E autenticado sigue bloqueado por la misma regla de siempre,
+  no pedirle la contraseña real al usuario).
+- Barrido de código en `app/` y `lib/` (mismo método que
+  `docs/DASHBOARD-AUDIT.md` de F1-F4, extendido a F5-F9): sin
+  `mock/fake/hardcode/placeholder/TODO/FIXME/console.log/Math.random` en
+  código de producción; **47 de 47** funciones `plpgsql`/`sql` de todas las
+  migraciones tienen `set search_path = ''` (invariante de seguridad sin
+  excepciones); cero usos de `getSession()` en todo el repo (siempre
+  `getClaims()`, regla de CLAUDE.md); la clave secreta de Supabase solo
+  aparece en `lib/supabase/admin.ts` (con `import "server-only"`), en
+  ningún otro archivo ni con prefijo `NEXT_PUBLIC_`; `app/tienda/layout.tsx`
+  verificado línea por línea por primera vez (quedaba pendiente desde
+  `DASHBOARD-AUDIT.md` F1-F4) — mismo patrón de `admin/layout.tsx`, más una
+  verificación extra de que la tienda del vendedor siga activa.
+
+**2 bugs reales encontrados y corregidos** (ninguno de esta fase — arrastrados
+desde F2/F3, la superficie que este QA fue el primero en revisar a fondo):
+1. `app/admin/lotes/[id]/page.tsx`: cargaba **todos** los seriales de un
+   lote (`select("status")`, sin `.limit()`) para contarlos por estado en
+   el servidor de Next — con un lote real de cientos de miles de seriales
+   (el volumen que la Fase 3 fue diseñada para soportar), es exactamente
+   "cargar grandes datasets completos en el frontend" (CLAUDE.md, "No
+   hacer"). Corregido con 4 `count(*)` en paralelo (`head:true`), usando el
+   índice `serials_lot_status_idx (lot_id, status)` ya existente.
+2. `lib/import/upload.ts`, `fetchPreviewCounts()`: el mismo problema pero
+   peor — corre en el **navegador** (`"use client"`) y es parte del gate
+   obligatorio de vista previa antes de confirmar una importación
+   (CLAUDE.md exige vista previa con conteos antes de poder confirmar).
+   Traía todas las filas de `serial_import_rows` de la importación sin
+   límite: además de violar la misma regla, el límite por defecto de 1000
+   filas por respuesta de PostgREST significaba que los conteos ya eran
+   **incorrectos en silencio** para cualquier importación de más de 1000
+   filas (contaba solo las primeras 1000, no el total real) — un bug de
+   corrección real, no solo de performance, en un flujo que Fase 3 sí
+   probó a escala (100k/300k) pero aparentemente sin fijarse en si el
+   número de la vista previa coincidía con el real. Corregido con 5
+   `count(*)` en paralelo (total + 4 por estado).
+
+Ambos verificados con `tsc --noEmit`/`npm run lint`/`npx vitest run`
+después del fix — sin regresiones.
+
+SIGUIENTE: cierre de la Fase 9 pendiente de que el usuario confirme que el
+           sistema funcional está terminado. Backups, runbook, proyecto de
+           producción, despliegue, dominio y Resend quedan para ese momento
+           (decisión explícita del usuario), igual que las 2 migraciones de
+           índices ya escritas pero sin aplicar.
 ```
 
 ---

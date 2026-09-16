@@ -41,9 +41,22 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
 
   if (error || !lot) notFound();
 
-  const { data: serials } = await supabase.from("serials").select("status").eq("lot_id", id);
-  const counts = { AVAILABLE: 0, ACTIVATED: 0, BLOCKED: 0, VOID: 0 } as Record<string, number>;
-  for (const s of serials ?? []) counts[s.status] = (counts[s.status] ?? 0) + 1;
+  // count(*) por estado en vez de traer cada fila: un lote real puede tener
+  // cientos de miles de seriales (Fase 3), y sumar en el servidor de Next.js
+  // sería exactamente el "cargar grandes datasets completos en el frontend"
+  // que el proyecto prohíbe. Usa el índice serials_lot_status_idx
+  // (lot_id, status), igual que el resto de las consultas de esta pantalla.
+  const [available, activated, blocked, voidCount] = await Promise.all(
+    (["AVAILABLE", "ACTIVATED", "BLOCKED", "VOID"] as const).map((status) =>
+      supabase.from("serials").select("id", { count: "exact", head: true }).eq("lot_id", id).eq("status", status),
+    ),
+  );
+  const counts: Record<string, number> = {
+    AVAILABLE: available.count ?? 0,
+    ACTIVATED: activated.count ?? 0,
+    BLOCKED: blocked.count ?? 0,
+    VOID: voidCount.count ?? 0,
+  };
 
   return (
     <div className="space-y-6">
