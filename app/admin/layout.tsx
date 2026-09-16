@@ -20,9 +20,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq("id", claims.claims.sub)
     .single();
 
-  if (!profile || profile.role !== "admin" || !profile.is_active) {
+  if (!profile || (profile.role !== "admin" && profile.role !== "superadmin") || !profile.is_active) {
     redirect("/login");
   }
 
-  return <AppShell role="admin" fullName={profile.full_name}>{children}</AppShell>;
+  return (
+    <AppShell role={profile.role as "admin" | "superadmin"} fullName={profile.full_name}>
+      {children}
+    </AppShell>
+  );
 }

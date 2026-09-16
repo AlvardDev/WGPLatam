@@ -17,7 +17,7 @@ Stack: Next.js 16 (App Router) + React 19 + TypeScript + Supabase (Postgres, Aut
 
 ## Roles
 
-- Dos roles en el MVP: **MASTER/ADMIN** (`profiles.role = 'admin'`) y **SELLER** (`profiles.role = 'seller'`, con `store_id` obligatorio). Ver `docs/ARCHITECTURE.md`, "Roles y permisos", para la lista completa de qué puede y qué no puede hacer cada uno.
+- Tres roles: **SUPERADMIN** (`profiles.role = 'superadmin'`, el desarrollador/operador — gestiona otras cuentas admin, hereda todo lo de MASTER/ADMIN), **MASTER/ADMIN** (`profiles.role = 'admin'`, el cliente dueño del negocio) y **SELLER** (`profiles.role = 'seller'`, con `store_id` obligatorio). Ver `docs/ARCHITECTURE.md`, "Roles y permisos", para la lista completa de qué puede y qué no puede hacer cada uno.
 - MASTER/ADMIN controla el sistema **desde la interfaz de la app**. Eso no lo convierte en dueño de GitHub, Supabase, Vercel, Resend ni del código — la propiedad de infraestructura es un tema aparte (Fase 10). Nunca mezclar ambos conceptos en la UI ni en el código.
 - Mínimo privilegio y mínimo dato necesario: antes de dar SELECT completo de una tabla a `seller`, preguntar qué columnas necesita realmente la pantalla. Ejemplos ya decididos: sin acceso a `lots`/`serials` (solo `lookup_serial` con columnas mínimas), sin acceso a `technical_reports` completos, sin acceso a `notification_settings`.
 

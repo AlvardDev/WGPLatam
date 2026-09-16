@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { areaForPath, roleHomePath } from "./role-path";
+import { areaForPath, areaForRole, roleHomePath } from "./role-path";
 
 describe("roleHomePath", () => {
   it("sends admin to /admin", () => {
     expect(roleHomePath("admin")).toBe("/admin");
+  });
+
+  it("sends superadmin to /admin", () => {
+    expect(roleHomePath("superadmin")).toBe("/admin");
   });
 
   it("sends seller to /tienda", () => {
@@ -13,6 +17,22 @@ describe("roleHomePath", () => {
   it("sends a user without role to /login", () => {
     expect(roleHomePath(null)).toBe("/login");
     expect(roleHomePath(undefined)).toBe("/login");
+  });
+});
+
+describe("areaForRole", () => {
+  it("maps admin and superadmin to the admin area", () => {
+    expect(areaForRole("admin")).toBe("admin");
+    expect(areaForRole("superadmin")).toBe("admin");
+  });
+
+  it("maps seller to the seller area", () => {
+    expect(areaForRole("seller")).toBe("seller");
+  });
+
+  it("returns null for no role", () => {
+    expect(areaForRole(null)).toBeNull();
+    expect(areaForRole(undefined)).toBeNull();
   });
 });
 

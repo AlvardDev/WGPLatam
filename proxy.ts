@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { areaForPath, roleHomePath } from "@/lib/auth/role-path";
+import { areaForPath, areaForRole, roleHomePath } from "@/lib/auth/role-path";
 
 /**
  * proxy.ts es el nombre de este archivo en Next.js 16 (antes middleware.ts;
@@ -74,14 +74,14 @@ export async function proxy(request: NextRequest) {
   } catch {
     claims = undefined;
   }
-  const role = (claims?.app_metadata as { role?: "admin" | "seller" } | undefined)?.role ?? null;
+  const role = (claims?.app_metadata as { role?: "admin" | "seller" | "superadmin" } | undefined)?.role ?? null;
 
-  // MFA obligatorio para admin (Fase 8; docs/SECURITY.md, "MFA"). Vendedores
-  // quedan fuera a propósito: es opcional para ellos en el MVP. Igual que
-  // getClaims() arriba, si la llamada falla se trata como "todavía en
-  // aal1" — cierra en falso, nunca deja pasar a un admin sin verificar.
+  // MFA obligatorio para admin y superadmin (Fase 8; docs/SECURITY.md,
+  // "MFA"). Vendedores quedan fuera a propósito: es opcional para ellos en
+  // el MVP. Igual que getClaims() arriba, si la llamada falla se trata como
+  // "todavía en aal1" — cierra en falso, nunca deja pasar sin verificar.
   let requiresMfa = false;
-  if (claims && role === "admin") {
+  if (claims && (role === "admin" || role === "superadmin")) {
     try {
       const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       requiresMfa = !data || data.currentLevel !== "aal2";
@@ -112,7 +112,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isMfaPage && claims) {
-    if (role !== "admin") return redirectWithCsp(roleHomePath(role));
+    if (role !== "admin" && role !== "superadmin") return redirectWithCsp(roleHomePath(role));
     if (!requiresMfa) return redirectWithCsp("/admin");
   }
 
@@ -120,7 +120,7 @@ export async function proxy(request: NextRequest) {
     return redirectWithCsp("/mfa");
   }
 
-  if (area && claims && role !== area) {
+  if (area && claims && areaForRole(role) !== area) {
     return redirectWithCsp(roleHomePath(role));
   }
 

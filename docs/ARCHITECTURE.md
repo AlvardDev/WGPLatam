@@ -83,7 +83,16 @@ Código e identificadores en inglés; UI y URLs en español.
 
 ## Roles y permisos
 
-Dos roles en el MVP, valores de columna `admin` / `seller` en `profiles.role`. Nombres conceptuales del negocio: **MASTER/ADMIN** y **SELLER**. No se cambia el nombre de la columna por preferencia: no hay incompatibilidad técnica que lo justifique.
+Tres roles, valores de columna `admin` / `seller` / `superadmin` en `profiles.role` (el tercero agregado el 2026-09-18, ver "Tercer rol" más abajo — ya no es hipotético). Nombres conceptuales del negocio: **SUPERADMIN**, **MASTER/ADMIN** y **SELLER**. No se cambia el nombre de la columna por preferencia: no hay incompatibilidad técnica que lo justifique.
+
+### SUPERADMIN (`role = 'superadmin'`)
+
+El desarrollador/operador del sistema (distinto del cliente dueño del negocio, que es MASTER/ADMIN — ver "Administración de la aplicación vs. propiedad de infraestructura" más abajo; esto tampoco es lo mismo: superadmin es un rol *dentro* de la app, no propiedad de infraestructura). Hereda absolutamente todo lo que puede hacer MASTER/ADMIN (`private.is_admin()` acepta ambos roles — ver `supabase/migrations/20260918000000_superadmin_role.sql`), más:
+
+- invitar cuentas MASTER/ADMIN nuevas (`admin_finalize_admin_profile`, pantalla `/admin/administradores`);
+- desactivar/reactivar cuentas MASTER/ADMIN (`admin_set_admin_active`) — **no** puede desactivar a otro superadmin ni a sí mismo por esta vía (evita bloquear el único acceso sin pasar por el bootstrap manual de más abajo).
+
+Un MASTER/ADMIN normal no ve la pantalla de administradores ni puede invocar esas 2 RPC (`private.is_superadmin()`, exclusivo). El primer superadmin se crea con el mismo procedimiento manual que "Primer admin" (más abajo), con `role: 'superadmin'` en vez de `'admin'`.
 
 ### MASTER / ADMIN (`role = 'admin'`)
 
@@ -126,7 +135,7 @@ Pertenece a una única tienda. Puede:
 - cambiar configuración global;
 - crear administradores ni otros vendedores.
 
-**Tercer rol futuro**: el diseño no lo necesita hoy, pero deja espacio para uno (p. ej. `technician` o `store_manager`) sin rediseñar el esquema: se añadiría un valor más al `CHECK` de `profiles.role` y las políticas/RPC que lo requieran. No se crea una tabla `roles`/`permissions` genérica mientras solo existan permisos fijos por rol — agregarla ahora sería una abstracción sin usuario que la configure.
+**Tercer rol**: agregado el 2026-09-18 (superadmin, ver arriba) exactamente como se había previsto — un valor más al `CHECK` de `profiles.role` y `private.is_admin()` extendida, sin tocar ninguna política/RPC de F2-F9. Si hiciera falta un cuarto rol (p. ej. `technician` o `store_manager`), el mismo patrón aplica. No se crea una tabla `roles`/`permissions` genérica mientras solo existan permisos fijos por rol — agregarla ahora sería una abstracción sin usuario que la configure.
 
 ### Mínimo dato necesario (repaso tabla por tabla)
 
@@ -146,14 +155,14 @@ Este principio se revisa en cada fase que toque una tabla nueva: antes de dar SE
 ## Auth (implementado en la Fase 1)
 
 - `auth.users → profiles`: el trigger `private.handle_new_user()` (migración `auth_user_provisioning`) crea el perfil al insertarse el usuario, leyendo **solo** `raw_app_meta_data` (nunca `raw_user_meta_data`, que el propio usuario puede tocar desde el cliente).
-- **Primer admin**: un usuario creado a mano en el dashboard de Supabase (sin `app_metadata`) recibe un perfil con `role = null`, `is_active = false` — sin acceso a nada. Para promoverlo:
+- **Primer admin (o primer superadmin)**: un usuario creado a mano en el dashboard de Supabase (sin `app_metadata`) recibe un perfil con `role = null`, `is_active = false` — sin acceso a nada. Para promoverlo (`'admin'` o `'superadmin'` según corresponda):
   ```sql
-  update auth.users set raw_app_meta_data = raw_app_meta_data || jsonb_build_object('role', 'admin')
+  update auth.users set raw_app_meta_data = raw_app_meta_data || jsonb_build_object('role', 'superadmin')
     where email = 'admin@empresa.com';
-  update public.profiles set role = 'admin', store_id = null, is_active = true
+  update public.profiles set role = 'superadmin', store_id = null, is_active = true
     where id = (select id from auth.users where email = 'admin@empresa.com');
   ```
-  (El trigger solo corre en el INSERT original; por eso el segundo UPDATE es manual.) No existe ni existirá un endpoint para volverse admin.
+  (El trigger solo corre en el INSERT original; por eso el segundo UPDATE es manual.) No existe ni existirá un endpoint para volverse admin/superadmin — pasadas estas 2 cuentas iniciales, invitar más MASTER/ADMIN es tarea de un superadmin desde `/admin/administradores` (`admin_finalize_admin_profile`), igual que invitar vendedores es tarea de un admin.
 - **Alta de vendedor** (Fase 4, `lib/actions/sellers.ts`): **no** es una sola llamada — este documento decía antes que sí, y era falso. `auth.admin.inviteUserByEmail(email, { data })` escribe `data` en `raw_user_meta_data`, nunca en `raw_app_meta_data` (verificado en el tipo `InviteUserByEmailOptions` de `@supabase/auth-js`: el campo está documentado como "maps to the user_metadata column"). Por eso el trigger crea el perfil sin rol (`role = null`, `is_active = false`, igual que el bootstrap manual del primer admin de arriba). El flujo real, en 3 pasos:
   1. `inviteUserByEmail(email, { data: { full_name }, redirectTo })` — crea el usuario y envía el correo.
   2. `updateUserById(user.id, { app_metadata: { role: 'seller', store_id, full_name } })` — esto sí llega a `app_metadata`, la fuente que `proxy.ts` lee del JWT en logins futuros para decidir si enruta a `/tienda`; sin este paso el vendedor invitado quedaría en un loop de redirección al iniciar sesión por primera vez.

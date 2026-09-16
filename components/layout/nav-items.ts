@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Store,
   Upload,
+  UserCog,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +31,13 @@ export const adminNav: NavItem[] = [
   { href: "/admin/reclamos", label: "Reclamos", icon: AlertTriangle },
   { href: "/admin/auditoria", label: "Auditoría", icon: ScrollText },
   { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
+];
+
+// Solo superadmin: gestiona otras cuentas admin. Extiende adminNav en vez de
+// duplicarla — un superadmin ve todo lo que ve un admin, más esto.
+export const superadminNav: NavItem[] = [
+  ...adminNav,
+  { href: "/admin/administradores", label: "Administradores", icon: UserCog },
 ];
 
 export const sellerNav: NavItem[] = [

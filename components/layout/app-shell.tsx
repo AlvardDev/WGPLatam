@@ -8,9 +8,9 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { UserMenu } from "@/components/layout/user-menu";
-import { adminNav, sellerNav, type NavItem } from "@/components/layout/nav-items";
+import { adminNav, sellerNav, superadminNav, type NavItem } from "@/components/layout/nav-items";
 
-const ROLE_LABEL = { admin: "Administrador", seller: "Vendedor" } as const;
+const ROLE_LABEL = { admin: "Administrador", seller: "Vendedor", superadmin: "Superadmin" } as const;
 
 function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -46,13 +46,13 @@ export function AppShell({
   storeName,
   children,
 }: {
-  role: "admin" | "seller";
+  role: "admin" | "seller" | "superadmin";
   fullName: string;
   storeName?: string;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const items = role === "admin" ? adminNav : sellerNav;
+  const items = role === "superadmin" ? superadminNav : role === "admin" ? adminNav : sellerNav;
 
   return (
     <div className="flex min-h-screen">

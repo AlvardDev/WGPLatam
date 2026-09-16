@@ -11,7 +11,8 @@ import { createClient } from "@/lib/supabase/server";
  * "Reglas no negociables".
  *
  * Devuelve el id del admin autenticado (para auditar quién ejecuta la
- * acción) o null si quien llama no es un admin activo.
+ * acción) o null si quien llama no es un admin (o superadmin) activo —
+ * superadmin hereda todo lo que puede hacer admin, nunca menos.
  */
 export async function requireAdmin(): Promise<{ id: string } | null> {
   const supabase = await createClient();
@@ -25,6 +26,6 @@ export async function requireAdmin(): Promise<{ id: string } | null> {
     .eq("id", sub)
     .single();
 
-  if (!profile || profile.role !== "admin" || !profile.is_active) return null;
+  if (!profile || (profile.role !== "admin" && profile.role !== "superadmin") || !profile.is_active) return null;
   return { id: sub };
 }

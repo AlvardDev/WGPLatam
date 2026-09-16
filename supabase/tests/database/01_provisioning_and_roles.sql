@@ -57,10 +57,13 @@ select ok(
 -- Un rol inválido en app_metadata debe rechazar la creación del usuario.
 -- throws_ok compara contra un SQLSTATE, no un mensaje — para el texto del
 -- error se usa throws_like (comparación por patrón LIKE).
+-- "gerente": rol genuinamente inválido. No usar "superadmin" aquí — desde
+-- 2026-09-18 es un rol real (ver 20260918000000_superadmin_role.sql y
+-- 13_superadmin.sql), dejó de servir como ejemplo de rol rechazado.
 select throws_like(
   $$ insert into auth.users (id, email, raw_app_meta_data)
-     values ('55555555-5555-5555-5555-555555555555', 'malo@test.local', '{"role":"superadmin"}'::jsonb) $$,
-  '%invalid role in app_metadata: superadmin%'
+     values ('55555555-5555-5555-5555-555555555555', 'malo@test.local', '{"role":"gerente"}'::jsonb) $$,
+  '%invalid role in app_metadata: gerente%'
 );
 
 select * from finish();
