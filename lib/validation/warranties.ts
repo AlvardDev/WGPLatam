@@ -23,3 +23,48 @@ export const activateWarrantySchema = z.object({
   customer: customerSchema,
 });
 export type ActivateWarrantyInput = z.infer<typeof activateWarrantySchema>;
+
+// Fase 6 — correcciones, anulación.
+export const CORRECTABLE_FIELDS = ["customer_name", "customer_national_id", "customer_whatsapp"] as const;
+export type CorrectableField = (typeof CORRECTABLE_FIELDS)[number];
+
+export const requestCorrectionSchema = z.object({
+  reason: z.string().trim().min(10, "Describe el motivo (mínimo 10 caracteres)"),
+  customer: customerSchema,
+});
+export type RequestCorrectionInput = z.infer<typeof requestCorrectionSchema>;
+
+export const decideCorrectionSchema = z.object({
+  decision: z.enum(["APPROVED", "REJECTED"]),
+  note: z.string().trim().max(500).optional(),
+});
+export type DecideCorrectionInput = z.infer<typeof decideCorrectionSchema>;
+
+export const voidWarrantySchema = z.object({
+  reason: z.string().trim().min(5, "Indica el motivo de la anulación"),
+});
+export type VoidWarrantyInput = z.infer<typeof voidWarrantySchema>;
+
+// Fase 7 — reclamos y reportes técnicos.
+export const openClaimSchema = z.object({
+  reason: z.string().trim().min(5, "Indica el motivo del reclamo"),
+  description: z.string().trim().max(2000).optional(),
+});
+export type OpenClaimInput = z.infer<typeof openClaimSchema>;
+
+export const decideClaimSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED"]),
+  decision: z.string().trim().min(3, "Indica la resolución"),
+  justification: z.string().trim().min(3, "Indica el motivo de la decisión"),
+});
+export type DecideClaimInput = z.infer<typeof decideClaimSchema>;
+
+export const createTechnicalReportSchema = z.object({
+  diagnosis: z.string().trim().min(3, "Indica el diagnóstico"),
+  result: z.string().trim().min(3, "Indica el resultado"),
+  decision: z.string().trim().min(3, "Indica la decisión"),
+  testsPerformed: z.string().trim().max(2000).optional(),
+  observations: z.string().trim().max(2000).optional(),
+  justification: z.string().trim().max(2000).optional(),
+});
+export type CreateTechnicalReportInput = z.infer<typeof createTechnicalReportSchema>;

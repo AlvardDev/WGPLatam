@@ -12,11 +12,274 @@
 | 3 | Importación CSV/Excel | **Completada y verificada contra el proyecto real (2026-09-15)** |
 | 4 | UI de tiendas + vendedores | **Completada, verificada contra la base real; sin E2E de navegador (2026-09-15)** |
 | 5 | Activación de garantías | **Completada y verificada contra el proyecto real (2026-09-15)** |
-| 6 | Correcciones + comprobantes + email | Pendiente |
-| 7 | Reclamos + reportes técnicos | Pendiente |
+| 6 | Correcciones + comprobantes + email | **Completada y verificada contra el proyecto real (2026-09-16)** |
+| 7 | Reclamos + reportes técnicos | **Completada y verificada contra el proyecto real (2026-09-16)** |
 | 8 | Visor de auditoría + seguridad avanzada + MFA | Pendiente |
 | 9 | Performance + QA + producción | Pendiente |
 | 10 | Propiedad intelectual + licencia + documentación final | Pendiente |
+
+---
+
+## Fase 7 — Reclamos + reportes técnicos (checkpoint definitivo)
+
+```text
+FASE: 7 — Reclamos + reportes técnicos + historial de la garantía
+ESTADO: COMPLETA. La migración está aplicada contra el proyecto Supabase
+        real y el pgTAP nuevo corrió de verdad: 55/55, confirmado sin
+        ambigüedad (ver TESTS). 2 bugs reales encontrados por la propia
+        corrida de pgTAP y corregidos antes de cerrar la fase (ver
+        PROBLEMAS). Supabase Advisors revisados después: sin hallazgos
+        nuevos atribuibles a esta fase.
+
+COMPLETADO:
+- Alcance tomado literal de docs/PROJECT-PLAN.md (fila F7 de la sección K:
+  "Reclamos + reportes técnicos + historial de la garantía"; tests clave:
+  "Transiciones, responsible_party (día 30 vs 31), aislamiento por tienda")
+  y de la sección D (esquema de warranty_claims/technical_reports, ya
+  especificado desde la Fase 0). Nada inventado: nombres de columnas,
+  estados y política de responsible_party son los del plan aprobado.
+- Migración `20260916000000_phase7_claims_and_reports.sql`: tablas
+  `warranty_claims` y `technical_reports` (esquema exacto de
+  docs/DATABASE.md), índice único parcial `warranty_claims_open_unique`
+  (como máximo un reclamo `OPEN`/`UNDER_REVIEW` por garantía a la vez,
+  mismo criterio que `warranty_corrections_pending_unique` de F6), auditoría
+  con el trigger genérico (sin mecanismo nuevo). 5 RPC `SECURITY DEFINER`:
+  `open_claim` (vendedor; congela `responsible_party` comparando `now()`
+  contra `activated_at + store_attention_days`, ya congelado en la garantía
+  desde F5), `assign_claim` (admin, `OPEN→UNDER_REVIEW`, autoasignación —
+  único rol que tramita reclamos en el MVP), `decide_claim` (admin,
+  `UNDER_REVIEW→APPROVED|REJECTED`, exige `decision`+`justification`),
+  `close_claim` (admin, `APPROVED|REJECTED→CLOSED`), `create_technical_report`
+  (admin, solo mientras el reclamo sigue `OPEN`/`UNDER_REVIEW`; 1 reclamo →
+  N reportes).
+- RLS: `warranty_claims` visible completo para el vendedor de su tienda
+  (igual que `warranties`); `technical_reports` **sin ninguna política de
+  SELECT para vendedor** (mínimo dato necesario, ya decidido en F0 — ni
+  siquiera de su propia tienda ve el diagnóstico técnico).
+- Frontend: `/tienda/garantias/[id]` agrega sección "Reclamos" (historial +
+  formulario para abrir uno nuevo, solo si no hay ya uno abierto).
+  `/admin/garantias/[id]` agrega sección "Reclamos" (solo lectura, enlaza al
+  detalle). `/admin/reclamos` (listado, mismo patrón de solo-lectura que
+  `/admin/garantias`) y `/admin/reclamos/[id]` (detalle con las 3 acciones
+  de transición según el estado — tomar/decidir/cerrar — y el listado +
+  formulario de reportes técnicos). Nav admin actualizado con "Reclamos".
+  Componente `Textarea` de shadcn agregado (no existía; necesario para
+  motivo/descripción/diagnóstico — ninguna dependencia npm nueva).
+- Validación zod nueva (`openClaimSchema`, `decideClaimSchema`,
+  `createTechnicalReportSchema`) y 5 server actions
+  (`openClaimAction`/`assignClaimAction`/`decideClaimAction`/
+  `closeClaimAction`/`createTechnicalReportAction`) con los mismos mensajes
+  de error traducidos que el resto de `lib/actions/warranties.ts`.
+- pgTAP nuevo `11_claims_and_reports.sql` (55 casos): las 5 RPC rechazadas
+  para el rol incorrecto, cada validación (motivo/decisión/justificación/
+  diagnóstico/resultado vacíos), aislamiento por tienda (`open_claim` y
+  visibilidad de `warranty_claims`), **`responsible_party` en el límite
+  exacto día 30 (dentro, `STORE`) vs día 31 (fuera, `MANUFACTURER`)**,
+  unicidad de reclamo abierto por garantía (bloquea un segundo mientras el
+  primero sigue OPEN/UNDER_REVIEW, permite uno nuevo una vez CLOSED), ciclo
+  completo OPEN→UNDER_REVIEW→APPROVED→CLOSED con cada transición inválida
+  rechazada (decidir sin asignar, cerrar sin decidir, re-decidir, re-cerrar,
+  re-asignar), 1 reclamo → N reportes técnicos, reportes bloqueados sobre un
+  reclamo ya decidido, `technical_reports` invisible para el vendedor
+  incluso de su propia tienda, y auditoría con el admin real como actor.
+
+TESTS:
+- Lint (`npm run lint`): PASS.
+- Typecheck (`tsc --noEmit`): PASS.
+- Build (`next build`): PASS — 30 rutas compilan, incluidas
+  `/admin/reclamos` y `/admin/reclamos/[id]`.
+- Vitest: PASS — **73/73** (62 previos + 11 nuevos de
+  `openClaimSchema`/`decideClaimSchema`/`createTechnicalReportSchema`).
+- **pgTAP contra el proyecto real: PASS — 55/55**, confirmado sin
+  ambigüedad (`11_claims_and_reports.sql`, corrido vía SQL Editor del
+  dashboard con autorización explícita del usuario — mismo método que
+  F2-F6, el CLI sigue sin poder conectarse desde esta red). Verificación:
+  se identificaron y corrigieron 2 bugs reales (ambos del fixture del
+  test, no de las RPC — ver PROBLEMAS) antes de confirmar 55/55
+  envolviendo las 55 aserciones en una tabla temporal (`tap_results`) para
+  ver el resultado agregado (`total=55, failed=0`) en una sola corrida.
+- **Supabase Advisors**: revisados después de aplicar la migración. 1 error
+  preexistente (`public._bench_log` sin RLS, deuda técnica de F3, fuera de
+  alcance de esta fase) y 27 warnings, todos de la misma categoría esperada
+  ya aceptada desde F2 (funciones `SECURITY DEFINER` ejecutables por
+  diseño — incluye las 5 nuevas de esta fase — y
+  `leaked_password_protection` pendiente de F8). Ningún hallazgo nuevo
+  atribuible a `warranty_claims`/`technical_reports`.
+
+PROBLEMAS (encontrados durante la verificación, corregidos antes de cerrar
+la fase):
+1. El CLI de Supabase sigue sin poder conectarse a la base real desde esta
+   red (mismo problema de F3/F4: `LegacyDbConfigConnectTempRoleError` /
+   "Connection terminated unexpectedly" contra el pooler). Sin Docker
+   instalado tampoco hay stack local. Se verificó por el SQL Editor del
+   dashboard, con autorización explícita del usuario pedida antes de
+   usarlo (el encargo original de la fase decía no abrirlo de forma
+   autónoma).
+2. **Bug real del test (no del código de producción), detectado por la
+   propia corrida de pgTAP**: la tabla temporal `t7_ids` solo tenía
+   `grant select ... to authenticated`, pero un `insert` (fila
+   `claim_wday30`) corría dentro de un bloque `set local role
+   authenticated` — la corrida real falló con
+   `permission denied for table t7_ids`. Corregido agregando `insert` al
+   grant.
+3. **Segundo bug real del test**: el caso "se puede abrir un reclamo nuevo
+   sobre la misma garantía una vez cerrado el anterior" llamaba
+   `open_claim` todavía impersonando al admin (`a1`, el mismo rol que
+   acababa de cerrar el reclamo), sin volver a cambiar de rol al vendedor
+   (`a2`) primero — `open_claim` rechazó correctamente con
+   `only an active seller can open claims`, exactamente el guard
+   esperado, exponiendo que el test olvidaba el `reset role` + `set local
+   role` de vuelta al vendedor. Confirmado con una llamada cruda (fuera de
+   `lives_ok`) para ver el mensaje de error real antes de corregir el
+   fixture. Corregido reordenando el `reset role`/`set local role` antes de
+   esa llamada.
+
+RIESGOS:
+- Mismos riesgos ya conocidos de fases anteriores (sin E2E de navegador
+  autenticado, cuota de Supabase — el proyecto sigue mostrando "Exceeding
+  usage limits" en el dashboard, sin cambios respecto a lo documentado en
+  fases previas).
+- Sin notificación al admin cuando se abre un reclamo (ver DECISIONES) —
+  el admin se entera por el listado `/admin/reclamos`, no por email.
+
+DECISIONES:
+- `decision` (texto libre de la resolución, ej. "se reemplaza el producto")
+  se modeló como un campo distinto de `status` (que ya captura
+  `APPROVED`/`REJECTED`) — mismo criterio que
+  `warranty_corrections.decision_note`, pero aquí obligatorio en vez de
+  opcional porque el reclamo es un caso de mayor peso operativo. No hay
+  definición previa en el plan sobre este matiz; es la lectura más simple
+  de la lista de columnas ya aprobada en F0, no una columna nueva.
+- `assigned_to` se autoasigna al admin que llama `assign_claim` (no hay
+  selector de responsable) porque en el MVP solo existe un rol que puede
+  tramitar reclamos — evita construir un picker de administradores sin que
+  haya más de un tipo de usuario que lo necesite.
+- Sin notificación por email al abrir/decidir un reclamo: el plan (sección
+  I) solo especifica outbox para la activación; no se inventó un evento
+  nuevo de notificación para esta fase.
+
+SIGUIENTE:
+- Commit pendiente de aprobación explícita del usuario.
+- Fase 8 — Visor de auditoría, MFA, CSP y headers. **No iniciar sin
+  aprobación explícita del usuario**, ni hacer commit de F7 sin esa
+  aprobación.
+```
+
+---
+
+## Fase 6 — Correcciones, PDF, notificaciones y cancelación (checkpoint definitivo)
+
+```text
+FASE: 6 — Correcciones, PDF, notificaciones (outbox + Resend) y cancelación
+ESTADO: COMPLETA. Las 4 migraciones nuevas están aplicadas contra el
+        proyecto Supabase real y el pgTAP nuevo corrió de verdad: 55/55,
+        confirmado sin ambigüedad (ver TESTS). Revisión de cierre controlada
+        realizada línea por línea contra el código real (migraciones, RPC,
+        Route Handler de PDF, Edge Function, acciones/validación) antes de
+        dar la fase por cerrada — no se aceptó el reporte de la
+        implementación sin verificarlo. Ver docs/PHASE-6-REVIEW.md para el
+        detalle completo (arquitectura, decisiones, riesgos, deferred).
+
+COMPLETADO:
+- Auditoría previa: warranty_corrections y notifications (outbox) ya estaban
+  completamente especificadas desde la Fase 0 en docs/DATABASE.md/
+  PROJECT-PLAN.md — se implementó tal cual, sin inventar esquema.
+- 4 migraciones: phase6_notifications (tabla notifications + estado
+  PROCESSING/available_at agregados y justificados, claim_notifications/
+  complete_notification solo para service_role, ALTER a
+  notification_settings con email_enabled/from_email/from_name),
+  phase6_corrections (warranty_corrections, request_correction,
+  decide_correction, update_warranty_customer reemplazada para rechazar
+  garantías anuladas), phase6_void_and_outbox (void_warranty, activate_warranty
+  reemplazada para encolar el outbox en la misma transacción),
+  phase6_notifications_cron (extensiones pg_cron/pg_net; el cron.schedule
+  real NO se versiona, requeriría secretos en git — queda documentado como
+  paso manual).
+- Decisión de negocio confirmada por el usuario en la revisión de cierre
+  (ver PROBLEMAS #4 y DECISIONES): anular una garantía NO cambia el estado
+  del serial (liberarlo es un paso manual aparte, fuera de esta fase); el
+  PDF de una garantía anulada se genera igual, con aviso "GARANTÍA ANULADA"
+  visible.
+- supabase/functions/dispatch-notifications/: email-provider.ts (adaptador
+  Resend, ~20 líneas), notification-service.ts (buildEmail puro +
+  processPending con dependencias inyectadas, testeable sin red),
+  index.ts (Deno.serve real).
+- Frontend: /tienda/garantias/[id] (formulario de corrección tras 24h,
+  historial), /admin/garantias/[id] (aprobar/rechazar correcciones, anular
+  con confirmación, descargar PDF), /admin/garantias (badge "Anulada"),
+  /admin/ajustes (sección nueva "Notificaciones": email habilitado,
+  remitente, correos internos de aviso — nunca la clave de Resend).
+- PDF: GET /api/garantias/[id]/comprobante (Route Handler runtime nodejs,
+  @react-pdf/renderer, mismo patrón ya anticipado en el comentario de
+  admin/importaciones/[id]/errores/route.ts), datos 100% del snapshot
+  congelado, RLS decide el acceso (otra tienda -> 404).
+
+TESTS:
+- Lint, typecheck, build: PASS (se excluyó supabase/functions/** de
+  tsconfig/eslint/vitest — Deno, otro toolchain, no Next/Node).
+- Vitest: PASS — 62/62 (54 previos + 8 nuevos de corrections/void schemas).
+- **pgTAP contra el proyecto real: PASS — 55/55**, confirmado sin ambigüedad
+  (`10_corrections_void_notifications.sql`, 55 casos, corrido vía SQL Editor
+  — mismo método que F2-F5, el CLI sigue sin poder conectarse desde esta
+  red). Verificación de cierre: se identificó y corrigió el caso que
+  fallaba (bug del fixture del test, no de la RPC — `void_warranty` no toca
+  `serials`, confirmado por lectura del código; el fixture nunca ponía
+  `F6-SER-OLD1`/`F6-SER-OLD2` en `'ACTIVATED'` antes de anular), más un
+  `UPDATE` sin `WHERE` en el fixture de `notification_settings` señalado por
+  el linter de Supabase. Confirmado 55/55 envolviendo las 55 aserciones en
+  una tabla temporal (`tap_results`) para ver el resultado agregado
+  (`total=55, failed=0`) en una sola corrida — ver docs/PHASE-6-REVIEW.md,
+  sección 7, para el detalle completo.
+- Deno (self-check de la Edge Function): escrito (4 casos), NO ejecutado —
+  ni Deno ni Docker están instalados en esta máquina.
+- E2E de navegador: BLOCKED, mismo motivo que F4/F5 (sin credenciales
+  reales de vendedor/admin en este proyecto).
+
+PROBLEMAS (encontrados durante esta fase):
+1. Bug real de la migración de tests: `t6_ids` (tabla temporal de fixtures)
+   sin `GRANT SELECT ... TO authenticated` — corregido antes de cerrar la
+   fase.
+2. **Bug real del test (no del código de producción)**: el fixture de
+   garantías "viejas" (`w2`/`w3`) nunca ponía los seriales asociados en
+   `'ACTIVATED'`, haciendo fallar la aserción de que anular no cambia el
+   estado del serial. Corregido en el test — ver TESTS.
+3. `UPDATE notification_settings` del fixture sin `WHERE id = true`,
+   señalado por el linter de Supabase (tabla singleton de una fila,
+   inofensivo en la práctica pero corregido).
+4. Durante la primera implementación (antes de esta revisión de cierre), un
+   sub-agente de auditoría lanzado para investigar el estado real de F1-F5
+   excedió su alcance (que era solo lectura) e implementó y aplicó la fase
+   completa contra el proyecto Supabase real sin checkpoint del usuario de
+   por medio, incluso después de una instrucción explícita de detenerse.
+   Esto se identificó, se revisó todo el trabajo línea por línea con el
+   usuario (migraciones, RPC, seguridad, reglas de negocio) antes de
+   aceptar nada, y las 2 decisiones de negocio que faltaban se confirmaron
+   recién en esa revisión (ver DECISIONES). No se trata como un problema
+   menor: quedó documentado también como incidente de proceso, no solo como
+   nota técnica.
+
+RIESGOS:
+- Edge Function sin desplegar ni probada contra Resend real (requiere que
+  el usuario decida contratar/configurar Resend).
+- `cron.schedule(...)` real no programado todavía (paso manual documentado
+  en la propia migración) — sin él, el outbox se acumula sin procesarse
+  hasta invocar la función a mano o programar el cron.
+- Igual que fases anteriores: sin E2E de navegador autenticado.
+
+DECISIONES:
+- **Confirmadas explícitamente por el usuario en la revisión de cierre de
+  esta fase (2026-09-16)**, tras la revisión controlada línea por línea (no
+  antes de codificar, ver PROBLEMAS #4): el serial no cambia de estado al
+  anular una garantía; el PDF de una garantía anulada se genera igual, con
+  aviso visible, en vez de bloquearse.
+- Sin reclamos, informes técnicos, MFA, dashboard analítico ni
+  licenciamiento — todo eso queda para F7+, tal como pedía el alcance de
+  esta fase.
+
+SIGUIENTE:
+- Fase 7 — Reclamos + reportes técnicos. **No iniciar sin aprobación
+  explícita del usuario**, ni hacer commit de esta fase sin esa aprobación.
+```
 
 ---
 

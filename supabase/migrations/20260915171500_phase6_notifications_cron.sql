@@ -1,0 +1,37 @@
+-- Fase 6 — extensiones para el disparador del worker de notificaciones
+-- (pg_cron + pg_net), ver docs/ARCHITECTURE.md, "Notificaciones".
+--
+-- Deliberadamente NO se programa aquí el "cron.schedule(...)" real: haría
+-- falta hardcodear la URL del proyecto y el service_role key (o un secreto
+-- de Vault) dentro de una migración versionada en git — exactamente lo que
+-- CLAUDE.md prohíbe ("nunca guardar contraseñas/secretos en el repo"). Solo
+-- se habilitan las extensiones (sin datos sensibles); la programación del
+-- cron es un paso manual de configuración de producción, documentado en
+-- docs/PHASE-6-REVIEW.md, a ejecutar una sola vez desde el SQL Editor del
+-- proyecto real con sus valores reales:
+--
+--   select cron.schedule(
+--     'dispatch-notifications',
+--     '* * * * *',
+--     $$
+--       select net.http_post(
+--         url := '<https://PROJECT_REF.supabase.co/functions/v1/dispatch-notifications>',
+--         headers := jsonb_build_object(
+--           'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
+--           'Content-Type', 'application/json'
+--         ),
+--         body := '{}'::jsonb
+--       );
+--     $$
+--   );
+--
+-- Mientras tanto, la Edge Function se puede invocar manualmente
+-- (`npx supabase functions invoke dispatch-notifications`) o vía
+-- `supabase functions deploy` + una llamada HTTP directa para procesar el
+-- outbox sin esperar al cron.
+
+-- Sin "with schema": se deja el destino por defecto de Supabase para cada
+-- una (pg_cron -> esquema "cron", pg_net -> esquema "net"), que es el que
+-- documenta y espera el propio dashboard/CLI de Supabase.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;

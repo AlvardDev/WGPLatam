@@ -98,6 +98,11 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 | `request_correction(...)` | vendedor | Pasadas 24 h; una pendiente por campo |
 | `decide_correction(id, decision, note)` | admin | Aplica el cambio en la misma transacción si `old_value` sigue vigente; auditado |
 | `void_warranty(id, reason)` | admin | Anula sin borrar; auditado |
+| `open_claim(warranty_id, reason, description)` | vendedor | Su tienda, garantía no anulada, motivo obligatorio. `responsible_party` se congela (`STORE` si `now() <= activated_at + store_attention_days`, si no `MANUFACTURER`). Como máximo un reclamo `OPEN`/`UNDER_REVIEW` por garantía a la vez (`warranty_claims_open_unique`) |
+| `assign_claim(claim_id)` | admin | `OPEN → UNDER_REVIEW`, `assigned_to = auth.uid()` (autoasignación; único rol que tramita reclamos en el MVP) |
+| `decide_claim(claim_id, status, decision, justification)` | admin | `UNDER_REVIEW → APPROVED\|REJECTED`; `decision`/`justification` obligatorios |
+| `close_claim(claim_id)` | admin | `APPROVED\|REJECTED → CLOSED`, `closed_at = now()` |
+| `create_technical_report(claim_id, diagnosis, result, decision, tests_performed?, observations?, justification?)` | admin | Solo mientras el reclamo sigue `OPEN`/`UNDER_REVIEW`; 1 reclamo → N reportes; `technician_id = auth.uid()` |
 | `stage_import_rows(import_id, rows)` | admin | Idempotente por `(import_id, row_number)`; validación por conjuntos; solo si `status = 'STAGING'` |
 | `start_import_commit(import_id)` | admin | Transición atómica `STAGING → COMMITTING` (`UPDATE ... WHERE status='STAGING' RETURNING id`); si dos admins confirman a la vez, solo uno obtiene la fila — el otro ve "ya fue confirmada". Es la acción **"Confirmar importación"** |
 | `commit_import_batch(import_id, batch_size default 2000)` | admin | Requiere `status = 'COMMITTING'` (o `'FAILED'`, retomable). Reclama hasta `batch_size` filas válidas con `FOR UPDATE SKIP LOCKED`; cada una termina en `COMMITTED` o `CONFLICT` (nunca se asume `ON CONFLICT DO NOTHING`, se reconcilia contra lo realmente insertado); idempotente, actualiza `committed_rows`; si no queda nada pendiente, pasa a `COMPLETED` (reintentar sobre `COMPLETED` es un no-op, no un error) |
@@ -270,3 +275,38 @@ Migración: `20260915162417_phase5_warranties.sql`.
 `supabase/tests/database/09_warranties.sql`, corrido vía SQL Editor del dashboard (mismo método que Fases 2-4; el CLI sigue sin poder conectarse desde esta red — ver Fase 4, PROBLEMAS): **36/36 PASS** tras los 2 fixes de arriba (los primeros 6 fallos eran el bug real #1; tras corregirlo, 2 fallos más eran el problema #2 de las pruebas).
 
 **Recuperación real, sin pagar**: el dashboard de Supabase (Database Settings) ofrece un botón **"Disable read-only mode"** — habilita escritura por 15 minutos para reducir el tamaño de la base; si no se reduce lo suficiente, se puede volver a pedir. Con esa ventana se liberaron ~122 MB borrando dos índices de `serial_import_rows` que habían quedado sobredimensionados con la tabla ya vacía, y luego se borraron ~375.000 de los ~440.000 seriales sintéticos del lote más grande usando un `PROCEDURE` con `COMMIT` por lote de 3.000 filas (una única llamada, no cientos) — cada `DELETE` seguía dependiendo de que `audit_logs` tuviera sitio para su propia fila de auditoría, así que hubo que alternar borrado y `VACUUM`. Quedan **65.000 filas sintéticas sin poder borrar** (documentadas como deuda técnica, no bloquean el código de Fase 3) tras llegar a un punto de retornos decrecientes; el usuario decidió detener la limpieza ahí y seguir con el resto de la fase. Antes de una importación real de cientos de miles/millones de filas en producción, usar un plan de pago con disco suficiente (ver `docs/PROJECT-PLAN.md`, sección N).
+
+## Fase 6 — correcciones, PDF, notificaciones y cancelación, implementado (2026-09-15)
+
+Migraciones: `phase6_notifications`, `phase6_corrections`, `phase6_void_and_outbox`, `phase6_notifications_cron`. Detalle completo de decisiones/arquitectura en `docs/PHASE-6-REVIEW.md`; aquí solo el esquema real.
+
+### Esquema
+
+- `warranty_corrections`: exactamente como estaba especificado desde la Fase 0 — `warranty_id, store_id, requested_by, field, old_value, new_value, reason, status (PENDING|APPROVED|REJECTED), decided_by, decided_at, decision_note`. `field` restringido por `CHECK` a `customer_name|customer_national_id|customer_whatsapp` (los mismos 3 que `warranties_guard_immutable`, Fase 5, ya permite cambiar). Unique parcial `(warranty_id, field) where status='PENDING'`. Auditada con el trigger genérico (`audit_warranty_corrections`).
+- `notifications` (outbox): `type, recipient, payload, status (PENDING|PROCESSING|SENT|FAILED), attempts, last_error, available_at, sent_at, created_at`. `PROCESSING` y `available_at` son las 2 únicas adiciones sobre el diseño original de `ARCHITECTURE.md`/esta misma tabla — necesarias para que "reclamar" un lote (transacción A, `claim_notifications`) y "enviarlo" (transacción B, la Edge Function llamando a Resend) no puedan pisarse entre dos invocaciones solapadas del worker; `SKIP LOCKED` por sí solo no alcanza porque no cubre el hueco entre ambas transacciones.
+- `notification_settings` (Fase 1) gana 3 columnas: `email_enabled boolean`, `from_email text`, `from_name text` — configuración funcional, nunca secreta (la clave de Resend vive solo como secreto de la Edge Function).
+- `warranties.voided_at/voided_by/voided_reason` (reservados sin usar desde la Fase 5) ahora los llena `void_warranty`. El trigger de inmutabilidad ya los permitía cambiar; no se tocó.
+
+### RPC (5 nuevas, todas `SECURITY DEFINER`, checklist de `SECURITY.md` aplicado)
+
+| RPC | Quién | Qué garantiza |
+|---|---|---|
+| `request_correction(warranty_id, field, new_value, reason)` | vendedor de la tienda dueña | Solo si `now() >= activated_at + 24h` y la garantía no está anulada; `old_value` se congela con el valor real vigente en ese instante; campo restringido a los 3 de cliente; motivo obligatorio; una `PENDING` por campo (el `unique` parcial lo garantiza, capturado como excepción amigable). |
+| `decide_correction(correction_id, decision, note)` | admin | Solo sobre `PENDING`. Si `APPROVED`, relee el campo actual con `FOR UPDATE` y lo compara contra `old_value`: si cambió desde que se pidió, rechaza (`%changed since%`) en vez de sobrescribir a ciegas. Aplica el cambio con `CASE` por columna (sin SQL dinámico). Rechaza si la garantía está anulada. |
+| `void_warranty(warranty_id, reason)` | admin | Anula sin borrar (`voided_at/by/reason`); rechaza si ya estaba anulada; motivo obligatorio. **No toca `serials`** — decisión explícita de esta fase (ver `PHASE-6-REVIEW.md`, sección 0). |
+| `claim_notifications(batch_size default 20)` | **solo `service_role`** | `FOR UPDATE SKIP LOCKED` sobre `PENDING` con `available_at <= now()`; marca `PROCESSING` e incrementa `attempts` en la misma transacción que reclama. |
+| `complete_notification(id, ok, error)` | **solo `service_role`** | Éxito -> `SENT` + `sent_at`. Fallo con intentos restantes -> `PENDING` con backoff exponencial (2^(attempts-1) minutos). Fallo al agotar 5 intentos -> `FAILED` definitivo. |
+
+`activate_warranty` (Fase 5) y `update_warranty_customer` (Fase 5) se reemplazaron (`create or replace` en migraciones nuevas de F6, sin editar los archivos de F5): la primera para encolar la notificación `warranty_activated` (una fila por correo de `notification_settings.admin_notification_emails`, solo si `email_enabled`) al final de la misma transacción; la segunda para rechazar también sobre una garantía ya anulada.
+
+### RLS
+
+`warranty_corrections`: mismo molde que `warranties` — `revoke all` + `warranty_corrections_admin_select` (todo) + `warranty_corrections_seller_select` (`store_id = current_store_id()`). Sin política de escritura para nadie (solo las 2 RPC). `notifications`: mismo molde que `audit_logs` — solo `SELECT` para admin, ninguna escritura vía API (ni siquiera admin: solo las 2 RPC de `service_role`).
+
+### Outbox — NotificationService/EmailProvider/Resend
+
+Ver `docs/ARCHITECTURE.md` "Notificaciones" para la capa conceptual; implementación real en `supabase/functions/dispatch-notifications/` (`email-provider.ts`, `notification-service.ts`, `index.ts`) — detalle completo en `docs/PHASE-6-REVIEW.md`, sección 5. `pg_cron`/`pg_net` habilitados por migración; el `cron.schedule(...)` real (URL del proyecto + `service_role` key) **no se versiona** — queda como comentario/paso manual en la propia migración, porque commitearlo violaría la regla de no guardar secretos en el repo.
+
+### Verificación pgTAP real (contra el proyecto Supabase real)
+
+`supabase/tests/database/10_corrections_void_notifications.sql`, 55 casos, corrido vía SQL Editor (mismo método que Fases 2-5): **54/55**. 1 bug real encontrado y corregido en el camino (tabla temporal de fixtures sin `GRANT SELECT` a `authenticated` — mismo tipo de descuido que F5 ya había evitado con su propia tabla temporal). El caso restante fallido no se pudo identificar por inestabilidad del navegador controlado a mitad de la segunda verificación — ver `docs/PHASE-6-REVIEW.md`, sección 7, para el detalle honesto (no se afirma 55/55 sin haberlo visto).

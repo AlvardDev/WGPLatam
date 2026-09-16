@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
+import { NotificationSettingsForm } from "./notification-settings-form";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -14,6 +15,16 @@ export default async function AjustesPage() {
 
   if (error || !settings) {
     throw new Error("No se pudo cargar la configuración.");
+  }
+
+  const { data: notificationSettings, error: notificationError } = await supabase
+    .from("notification_settings")
+    .select("*")
+    .eq("id", true)
+    .single();
+
+  if (notificationError || !notificationSettings) {
+    throw new Error("No se pudo cargar la configuración de notificaciones.");
   }
 
   return (
@@ -45,6 +56,14 @@ export default async function AjustesPage() {
           supportEmail: settings.support_email ?? "",
           supportPhone: settings.support_phone ?? "",
           supportWhatsapp: settings.support_whatsapp ?? "",
+        }}
+      />
+      <NotificationSettingsForm
+        defaultValues={{
+          emailEnabled: notificationSettings.email_enabled,
+          fromEmail: notificationSettings.from_email ?? "",
+          fromName: notificationSettings.from_name ?? "",
+          adminNotificationEmails: (notificationSettings.admin_notification_emails ?? []).join("\n"),
         }}
       />
     </div>

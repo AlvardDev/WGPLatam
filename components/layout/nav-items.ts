@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Boxes,
   LayoutDashboard,
   Package,
@@ -26,6 +27,7 @@ export const adminNav: NavItem[] = [
   { href: "/admin/tiendas", label: "Tiendas", icon: Store },
   { href: "/admin/vendedores", label: "Vendedores", icon: Users },
   { href: "/admin/garantias", label: "Garantías", icon: ShieldCheck },
+  { href: "/admin/reclamos", label: "Reclamos", icon: AlertTriangle },
   { href: "/admin/auditoria", label: "Auditoría", icon: ScrollText },
   { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
 ];

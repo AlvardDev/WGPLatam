@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/state/empty-state";
 import {
   Table,
@@ -27,6 +28,7 @@ type WarrantyRow = {
   customer_name: string;
   activated_at: string;
   expires_at: string;
+  voided_at: string | null;
   stores: { name: string; code: string } | null;
 };
 
@@ -34,7 +36,7 @@ export default async function GarantiasPage() {
   const supabase = await createClient();
   const { data: warranties, error } = await supabase
     .from("warranties")
-    .select("id, product_name, serial, customer_name, activated_at, expires_at, stores(name, code)")
+    .select("id, product_name, serial, customer_name, activated_at, expires_at, voided_at, stores(name, code)")
     .order("activated_at", { ascending: false })
     .limit(100)
     .returns<WarrantyRow[]>();
@@ -70,6 +72,11 @@ export default async function GarantiasPage() {
                     <Link href={`/admin/garantias/${w.id}`} className="font-medium hover:underline">
                       {w.product_name}
                     </Link>
+                    {w.voided_at && (
+                      <Badge variant="destructive" className="ml-2">
+                        Anulada
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="font-mono text-sm">{w.serial}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">

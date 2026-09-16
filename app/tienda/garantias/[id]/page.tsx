@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CorrectionHistory, type CorrectionRow } from "@/components/warranties/correction-history";
+import { ClaimHistory, type ClaimRow } from "@/components/warranties/claim-history";
 import { EditCustomerForm } from "./edit-customer-form";
+import { RequestCorrectionForm } from "./request-correction-form";
+import { OpenClaimForm } from "./open-claim-form";
 
 export const metadata: Metadata = { title: "Garantía" };
 
@@ -18,22 +24,55 @@ export default async function GarantiaDetallePage({
   const { data: warranty, error } = await supabase
     .from("warranties")
     .select(
-      "id, product_name, product_code, serial, barcode, lot_code, activated_at, expires_at, duration_days, conditions, exclusions, customer_name, customer_national_id, customer_whatsapp",
+      "id, product_name, product_code, serial, barcode, lot_code, activated_at, expires_at, duration_days, conditions, exclusions, customer_name, customer_national_id, customer_whatsapp, voided_at, voided_reason",
     )
     .eq("id", id)
     .single();
 
   if (error || !warranty) notFound();
 
+  const { data: corrections } = await supabase
+    .from("warranty_corrections")
+    .select("id, field, old_value, new_value, reason, status, decided_at, decision_note, created_at")
+    .eq("warranty_id", id)
+    .order("created_at", { ascending: false })
+    .returns<CorrectionRow[]>();
+
+  const { data: claims } = await supabase
+    .from("warranty_claims")
+    .select("id, reason, description, status, responsible_party, decision, decision_justification, closed_at, created_at")
+    .eq("warranty_id", id)
+    .order("created_at", { ascending: false })
+    .returns<ClaimRow[]>();
+
+  const hasOpenClaim = (claims ?? []).some((c) => c.status === "OPEN" || c.status === "UNDER_REVIEW");
+
   const editableUntil = new Date(new Date(warranty.activated_at).getTime() + EDIT_WINDOW_HOURS * 60 * 60 * 1000);
-  const canEdit = new Date() < editableUntil;
+  const canEdit = !warranty.voided_at && new Date() < editableUntil;
+  const canRequestCorrection = !warranty.voided_at && !canEdit;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{warranty.product_name}</h1>
-        <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{warranty.product_name}</h1>
+            {warranty.voided_at && <Badge variant="destructive">Anulada</Badge>}
+          </div>
+          <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
+        </div>
+        <Button render={<a href={`/api/garantias/${warranty.id}/comprobante?download=1`} />}>
+          Descargar comprobante
+        </Button>
       </div>
+
+      {warranty.voided_at && (
+        <Card>
+          <CardContent className="text-sm text-muted-foreground">
+            Esta garantía fue anulada el {new Date(warranty.voided_at).toLocaleString("es")}. Motivo: {warranty.voided_reason}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -69,7 +108,9 @@ export default async function GarantiaDetallePage({
           <CardDescription>
             {canEdit
               ? "Se puede corregir hasta 24 horas después de la activación."
-              : "Pasaron más de 24 horas: ya no se puede editar aquí (la corrección con aprobación llega en una fase posterior)."}
+              : canRequestCorrection
+                ? "Pasaron más de 24 horas: cualquier cambio queda pendiente de aprobación de un administrador."
+                : "Garantía anulada: los datos del cliente ya no se pueden modificar."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -77,6 +118,15 @@ export default async function GarantiaDetallePage({
             <EditCustomerForm
               warrantyId={warranty.id}
               defaultValues={{
+                name: warranty.customer_name,
+                nationalId: warranty.customer_national_id,
+                whatsapp: warranty.customer_whatsapp,
+              }}
+            />
+          ) : canRequestCorrection ? (
+            <RequestCorrectionForm
+              warrantyId={warranty.id}
+              current={{
                 name: warranty.customer_name,
                 nationalId: warranty.customer_national_id,
                 whatsapp: warranty.customer_whatsapp,
@@ -98,6 +148,27 @@ export default async function GarantiaDetallePage({
               </div>
             </dl>
           )}
+        </CardContent>
+      </Card>
+
+      {corrections && corrections.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Correcciones solicitadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CorrectionHistory corrections={corrections} />
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Reclamos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ClaimHistory claims={claims ?? []} />
+          {!warranty.voided_at && !hasOpenClaim && <OpenClaimForm warrantyId={warranty.id} />}
         </CardContent>
       </Card>
 
