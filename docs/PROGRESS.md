@@ -2,6 +2,40 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Migración a un proyecto Supabase nuevo y limpio (2026-09-16)
+
+Decisión explícita del usuario dentro de la Fase 9: el proyecto original (`eaxzhjodudrshblvcghv`,
+"WGPLatam's Project", us-east-2) acumuló ~980k filas de `audit_logs` del benchmark de 1M de la
+Fase 3 (ver checkpoint de Fase 9 abajo) y no había forma limpia de purgarlas (tabla append-only por
+diseño). Dado que el rendimiento a escala ya estaba probado con esos benchmarks, se optó por
+empezar de cero en vez de seguir arrastrando esa deuda.
+
+- **Proyecto nuevo**: `vebuujkumccbtxaavida` ("WGPLatinoamerica", región `eu-west-1`, elegida por
+  el usuario tras varios intentos fallidos de seleccionar São Paulo en el selector de región del
+  dashboard tal como se pidió inicialmente). Mismo org ("WGPLatam's Org"), cuenta separada de
+  "AlvardDev's Org" — sigue aplicando la regla de `CLAUDE.md`.
+- **Migración**: las 25 migraciones existentes en `supabase/migrations/` se aplicaron en orden
+  exacto contra el proyecto nuevo (incluidas las 2 de fix — encoding del mensaje de
+  `warranties_guard_immutable` y los índices de performance — en vez de saltárselas, para que el
+  historial de migraciones siga siendo fielmente reproducible). 0 filas de negocio migradas — el
+  proyecto arranca genuinamente limpio, con solo las 2 filas singleton de `app_settings`/
+  `notification_settings` que las propias migraciones insertan.
+- **Verificación**: los 12 archivos de pgTAP (`01` a `12`) se corrieron completos contra el
+  proyecto nuevo vía el MCP oficial de Supabase (`execute_sql`/`apply_migration`, mucho más
+  confiable que pegar SQL a mano en el dashboard) — **302/302 aserciones**, sin ningún fallo.
+  Supabase Advisors revisado: mismos hallazgos ya aceptados de siempre (funciones
+  `SECURITY DEFINER` ejecutables por diseño, FKs a `auth.users` sin índice, políticas múltiples
+  para SELECT admin/seller) más 2 nuevos benignos por haber dejado activo "Enable automatic RLS"
+  al crear el proyecto (un trigger de seguridad adicional, no un hallazgo real).
+- **Proyecto viejo eliminado** (`eaxzhjodudrshblvcghv`), con confirmación explícita del usuario,
+  una vez migrado y verificado el nuevo.
+- **`.mcp.json`** actualizado para apuntar al proyecto nuevo (ya estaba commiteado desde la Fase 1,
+  apuntando al viejo). `.env.local` (no versionado) actualizado con la URL y la publishable key
+  nuevas.
+- Las referencias a `eaxzhjodudrshblvcghv` en los checkpoints de fases anteriores (F1-F8, más abajo
+  en este documento) **no se reescribieron** — son registro histórico de lo que era cierto en su
+  momento, igual que un commit de git no se reescribe.
+
 ## Estado general
 
 | Fase | Nombre | Estado |
@@ -71,14 +105,15 @@ PROBLEMAS:
 
 RIESGOS:
 - `audit_logs` sigue creciendo con cada acción real del sistema (es su
-  diseño desde F1) — el hallazgo de 980k filas es específico del benchmark
-  de la Fase 3, no augura que el crecimiento normal vaya a ser así de
-  rápido, pero confirma que la cuota de 500 MB del plan Free es el techo
-  real a vigilar antes de tener uso real con clientes.
-- La migración `20260917000000_phase9_performance_indexes.sql` está
-  commiteada pero sin aplicar contra el proyecto real — cualquier sesión
-  futura que corra pgTAP o mida performance del visor de auditoría debe
-  saber que el índice compuesto todavía no existe en producción.
+  diseño desde F1) — el hallazgo de 980k filas fue específico del benchmark
+  de la Fase 3 en el proyecto viejo, ya no existe (ver "Migración a un
+  proyecto Supabase nuevo" al principio de este documento), pero la cuota de
+  500 MB del plan Free sigue siendo el techo real a vigilar cuando haya uso
+  real con clientes.
+- ~~La migración `20260917000000_phase9_performance_indexes.sql` está
+  commiteada pero sin aplicar contra el proyecto real~~ — resuelto: las 25
+  migraciones, incluida esta, ya corren contra el proyecto nuevo
+  (`vebuujkumccbtxaavida`).
 
 DECISIONES:
 - Alcance de F9 re-secuenciado (ver ESTADO): primero funcionalidad completa
@@ -169,11 +204,19 @@ desde F2/F3, la superficie que este QA fue el primero en revisar a fondo):
 Ambos verificados con `tsc --noEmit`/`npm run lint`/`npx vitest run`
 después del fix — sin regresiones.
 
-SIGUIENTE: cierre de la Fase 9 pendiente de que el usuario confirme que el
-           sistema funcional está terminado. Backups, runbook, proyecto de
-           producción, despliegue, dominio y Resend quedan para ese momento
-           (decisión explícita del usuario), igual que las 2 migraciones de
-           índices ya escritas pero sin aplicar.
+Migración a un proyecto Supabase nuevo (2026-09-16, ver sección al principio
+de este documento): las 25 migraciones (incluidas las 2 de índices/fix que
+seguían sin aplicar) ya corren contra `vebuujkumccbtxaavida`, verificadas con
+pgTAP completo (302/302). Con esto, **la cuota de disco/audit_logs deja de
+ser un riesgo abierto** — el proyecto nuevo arranca en 0 filas de negocio y
+el problema del benchmark de F3 no existe ahí. El proyecto viejo fue
+eliminado con confirmación del usuario.
+
+SIGUIENTE: con la base ya migrada y limpia, queda pendiente decidir cuándo
+           retomar el resto de infraestructura (proyecto de producción real,
+           despliegue en Vercel, dominio, Resend, backups/runbook) — sigue
+           pausado hasta que el usuario confirme que el sistema funcional
+           está terminado.
 ```
 
 ---
