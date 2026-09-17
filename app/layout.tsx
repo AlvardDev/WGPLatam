@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Nombrada "--font-sans" (no "--font-inter") a propósito: coincide con la
+// variable que app/globals.css espera en @theme inline (`--font-sans: var(--font-sans)`,
+// un passthrough deliberado de Tailwind v4 hacia lo que next/font defina en
+// <html>). Antes esto usaba Geist con la variable "--font-geist-sans" —
+// nombre distinto, nunca calzaba con lo que pedía globals.css, así que
+// font-sans caía en el fallback del navegador (Times New Roman) en toda la
+// app. Ver docs/PROGRESS.md si hace falta el detalle completo.
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -33,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>

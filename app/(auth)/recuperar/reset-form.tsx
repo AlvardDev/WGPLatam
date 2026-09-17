@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { Mail } from "lucide-react";
 import { requestPasswordReset } from "@/lib/actions/auth";
 import {
   requestPasswordResetSchema,
@@ -10,9 +12,8 @@ import {
 } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 export function ResetForm() {
   const [isPending, startTransition] = useTransition();
@@ -35,46 +36,54 @@ export function ResetForm() {
 
   if (sent) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h1 className="contents">Revisa tu correo</h1>
-          </CardTitle>
-          <CardDescription>
-            Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <AuthShell title="Revisa tu correo">
+        <p className="text-sm text-slate-500">
+          Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.
+        </p>
+        <Link
+          href="/login"
+          className="mt-6 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+        >
+          Volver a iniciar sesión
+        </Link>
+      </AuthShell>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h1 className="contents">Recuperar contraseña</h1>
-        </CardTitle>
-        <CardDescription>Te enviaremos un enlace a tu correo.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          <FieldGroup>
-            <Field data-invalid={!!errors.email}>
-              <FieldLabel htmlFor="email">Correo</FieldLabel>
-              <Input id="email" type="email" autoComplete="email" {...register("email")} />
-              <FieldError errors={[errors.email]} />
-            </Field>
-            <Button type="submit" disabled={isPending} className="w-full">
-              {isPending ? "Enviando..." : "Enviar enlace"}
-            </Button>
-          </FieldGroup>
-        </form>
-        <FieldDescription className="mt-4 text-center">
-          <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
-            Volver a iniciar sesión
-          </Link>
-        </FieldDescription>
-      </CardContent>
-    </Card>
+    <AuthShell title="Recuperar contraseña" description="Te enviaremos un enlace a tu correo.">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <FieldGroup>
+          <Field data-invalid={!!errors.email}>
+            <FieldLabel htmlFor="email">Correo</FieldLabel>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="Ingresa tu correo"
+                className="h-11 pl-9"
+                {...register("email")}
+              />
+            </div>
+            <FieldError errors={[errors.email]} />
+          </Field>
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="h-11 w-full rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
+            {isPending ? "Enviando..." : "Enviar enlace"}
+          </Button>
+        </FieldGroup>
+      </form>
+      <Link
+        href="/login"
+        className="mt-4 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+      >
+        Volver a iniciar sesión
+      </Link>
+    </AuthShell>
   );
 }

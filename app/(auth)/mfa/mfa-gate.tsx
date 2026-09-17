@@ -4,12 +4,13 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { totpCodeSchema, type TotpCodeInput } from "@/lib/validation/mfa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 type Mode = "loading" | "enroll" | "challenge" | "error";
 
@@ -106,78 +107,65 @@ export function MfaGate() {
 
   if (mode === "loading") {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Verificando...
-        </CardContent>
-      </Card>
+      <AuthShell title="Verificando...">
+        <p className="text-sm text-slate-500">Un momento por favor.</p>
+      </AuthShell>
     );
   }
 
   if (mode === "error") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h1 className="contents">No se pudo continuar</h1>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-destructive">{formError}</p>
-        </CardContent>
-      </Card>
+      <AuthShell title="No se pudo continuar">
+        <p className="text-sm text-destructive">{formError}</p>
+      </AuthShell>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h1 className="contents">
-            {mode === "enroll" ? "Activa la verificación en dos pasos" : "Verificación en dos pasos"}
-          </h1>
-        </CardTitle>
-        <CardDescription>
-          {mode === "enroll"
-            ? "Obligatoria para administradores. Escanea el código con Google Authenticator, Authy o similar."
-            : "Ingresa el código de tu aplicación de autenticación."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {mode === "enroll" && qrCode ? (
-          <div className="mb-4 flex flex-col items-center gap-2">
-            {/* Datos generados por Supabase Auth (data URI), no contenido de
-                usuario; next/image no aporta nada aquí (no hay optimización
-                posible ni CDN remoto que configurar para un data: URI). */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrCode} alt="Código QR para el segundo factor" className="h-40 w-40" />
-            {secret ? (
-              <p className="break-all text-center text-xs text-muted-foreground">
-                O ingresa manualmente: <span className="font-mono">{secret}</span>
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          <FieldGroup>
-            <Field data-invalid={!!errors.code}>
-              <FieldLabel htmlFor="code">Código de 6 dígitos</FieldLabel>
-              <Input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                {...register("code")}
-              />
-              <FieldError errors={[errors.code]} />
-            </Field>
-            {formError ? <FieldError>{formError}</FieldError> : null}
-            <Button type="submit" disabled={isPending} className="w-full">
-              {isPending ? "Verificando..." : mode === "enroll" ? "Activar" : "Verificar"}
-            </Button>
-          </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
+    <AuthShell
+      title={mode === "enroll" ? "Activa la verificación en dos pasos" : "Verificación en dos pasos"}
+      description={
+        mode === "enroll"
+          ? "Obligatoria para administradores. Escanea el código con Google Authenticator, Authy o similar."
+          : "Ingresa el código de tu aplicación de autenticación."
+      }
+    >
+      {mode === "enroll" && qrCode ? (
+        <div className="mb-4 flex flex-col items-center gap-2">
+          {/* Datos generados por Supabase Auth (data URI) — next/image acepta
+              data: URIs sin optimización remota, sirve igual que un <img>. */}
+          <Image src={qrCode} alt="Código QR para el segundo factor" width={160} height={160} className="h-40 w-40" unoptimized />
+          {secret ? (
+            <p className="text-center text-xs break-all text-muted-foreground">
+              O ingresa manualmente: <span className="font-mono">{secret}</span>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <FieldGroup>
+          <Field data-invalid={!!errors.code}>
+            <FieldLabel htmlFor="code">Código de 6 dígitos</FieldLabel>
+            <Input
+              id="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className="h-11"
+              {...register("code")}
+            />
+            <FieldError errors={[errors.code]} />
+          </Field>
+          {formError ? <FieldError>{formError}</FieldError> : null}
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="h-11 w-full rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
+            {isPending ? "Verificando..." : mode === "enroll" ? "Activar" : "Verificar"}
+          </Button>
+        </FieldGroup>
+      </form>
+    </AuthShell>
   );
 }
