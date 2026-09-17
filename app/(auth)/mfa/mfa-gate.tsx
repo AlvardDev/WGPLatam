@@ -134,7 +134,7 @@ export function MfaGate() {
         <div className="mb-4 flex flex-col items-center gap-2">
           {/* Datos generados por Supabase Auth (data URI) — next/image acepta
               data: URIs sin optimización remota, sirve igual que un <img>. */}
-          <Image src={qrCode} alt="Código QR para el segundo factor" width={160} height={160} className="h-40 w-40" unoptimized />
+          <Image src={qrCode} alt="Código QR para el segundo factor" width={240} height={240} className="h-60 w-60" unoptimized />
           {secret ? (
             <p className="text-center text-xs break-all text-muted-foreground">
               O ingresa manualmente: <span className="font-mono">{secret}</span>
