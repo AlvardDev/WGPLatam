@@ -93,10 +93,16 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const area = areaForPath(pathname);
   const isMfaPage = pathname === "/mfa";
-  const isAuthPage =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/recuperar") ||
-    pathname.startsWith("/actualizar-clave");
+  // "/actualizar-clave" queda afuera a propósito: a diferencia de /login y
+  // /recuperar, esa página necesita una sesión autenticada para funcionar
+  // (supabase.auth.updateUser) — es el destino del enlace de recuperación,
+  // no una página de la que haya que sacar a alguien ya logueado.
+  // Coincidencia exacta, no startsWith: "/recuperar-vendedor" y "/registro"
+  // son públicas mientras haya o no sesión, no deben rebotar a un
+  // administrador ya logueado (startsWith("/recuperar") atrapaba también
+  // "/recuperar-vendedor" por accidente).
+  const isAuthPage = pathname.startsWith("/login") || pathname === "/recuperar";
+  const isPendingPage = pathname === "/pendiente";
 
   const redirectWithCsp = (pathname: string, search?: Record<string, string>) => {
     const url = request.nextUrl.clone();
@@ -106,6 +112,21 @@ export async function proxy(request: NextRequest) {
     redirectResponse.headers.set("Content-Security-Policy", csp);
     return redirectResponse;
   };
+
+  // Sesión real pero sin rol asignado todavía (auto-registro de vendedor
+  // esperando aprobación — Fase 9, "seller_self_registration" — o el viejo
+  // bootstrap manual sin metadata): RLS ya bloquea todo el acceso a datos,
+  // esto solo evita dejarlo varado en /login o en un área protegida sin
+  // explicación. Se resuelve antes que cualquier otra regla porque ninguna
+  // de las siguientes tiene sentido para un rol nulo.
+  if (claims && !role) {
+    if (!isPendingPage) return redirectWithCsp("/pendiente");
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+  if (isPendingPage) {
+    return redirectWithCsp(claims ? roleHomePath(role) : "/login");
+  }
 
   if ((area || isMfaPage) && !claims) {
     return redirectWithCsp("/login", { next: pathname });
