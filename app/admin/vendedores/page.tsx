@@ -52,6 +52,11 @@ export default async function VendedoresPage({
   const { data: sellers, error } = await query.returns<SellerRow[]>();
   if (error) throw new Error("No se pudieron cargar los vendedores.");
 
+  const { data: inviteStatuses } = await supabase.rpc("admin_list_seller_invite_status");
+  const inviteStatusById = new Map(
+    ((inviteStatuses ?? []) as { id: string; invite_status: string }[]).map((r) => [r.id, r.invite_status]),
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -98,26 +103,35 @@ export default async function VendedoresPage({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Tienda</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Invitación</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sellers.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>
-                    <Link href={`/admin/vendedores/${s.id}`} className="font-medium hover:underline">
-                      {s.full_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {s.stores ? `${s.stores.name} (${s.stores.code})` : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={s.is_active ? "secondary" : "destructive"}>
-                      {s.is_active ? "Activo" : "Desactivado"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {sellers.map((s) => {
+                const inviteStatus = inviteStatusById.get(s.id);
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <Link href={`/admin/vendedores/${s.id}`} className="font-medium hover:underline">
+                        {s.full_name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.stores ? `${s.stores.name} (${s.stores.code})` : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={s.is_active ? "secondary" : "destructive"}>
+                        {s.is_active ? "Activo" : "Desactivado"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={inviteStatus === "accepted" ? "secondary" : "outline"}>
+                        {inviteStatus === "accepted" ? "Aceptada" : inviteStatus === "pending" ? "Sin aceptar" : "—"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
