@@ -9,13 +9,13 @@ import { ShieldCheck } from "lucide-react";
 export function BrandPanel() {
   return (
     <div className="relative hidden flex-1 flex-col overflow-hidden bg-gradient-to-br from-[#04070f] via-[#0a1128] to-[#0f2050] px-10 py-16 text-white lg:flex">
+      {/* Franja diagonal decorativa: clase de Tailwind (arbitrary value), no
+          `style` inline — la CSP de proxy.ts no tiene 'unsafe-inline' en
+          style-src, solo el nonce por request que React no aplica a los
+          atributos style="" que arma. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(115deg, transparent 50%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.04) 58%, transparent 58%)",
-        }}
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_50%,rgba(255,255,255,0.04)_50%,rgba(255,255,255,0.04)_58%,transparent_58%)]"
       />
       <div
         aria-hidden
