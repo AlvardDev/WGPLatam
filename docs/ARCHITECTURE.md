@@ -187,7 +187,14 @@ El rol **MASTER/ADMIN** controla el sistema **desde la interfaz web**: productos
 
 El acceso a infraestructura técnica es una cuestión de **despliegue, operación y propiedad/licencia**, separada del rol de negocio dentro de la app. Un MASTER/ADMIN puede cambiarse la contraseña de otro vendedor desde el panel; no puede (por ese rol) entrar al dashboard de Supabase.
 
-Esta separación es la base de la **Fase 10** (propiedad intelectual, licencia, entrega, mantenimiento, soporte, estado del servicio) y no se implementa nada de infraestructura relacionada con licenciamiento antes de esa fase.
+Esta separación es la base de la **Fase 10** (propiedad intelectual, licencia, entrega, mantenimiento, soporte, estado del servicio). Los términos de propiedad/licencia ya están decididos (ver abajo); lo que sigue pendiente de esa fase es todo lo demás — entrega formal, mantenimiento, soporte, estado del servicio — y **no se implementa ningún mecanismo técnico de licenciamiento** (activación, expiración, DRM, etc.) salvo que se pida explícitamente.
+
+### Términos de propiedad y licencia (definido 2026-09-16)
+
+- **Propiedad del código**: es del desarrollador. El cliente (MASTER/ADMIN del negocio) nunca es dueño del código fuente, del repositorio ni de la infraestructura — solo tiene la licencia de uso descrita abajo. Esto es consistente con la separación de arriba: controlar la app desde la interfaz no equivale a tener ningún derecho sobre el código.
+- **Licencia de uso**: perpetua, para un solo negocio. Una vez pagada por completo, el cliente puede usar el sistema para siempre — pero no revenderlo, sublicenciarlo ni usarlo para operar un negocio distinto del que se contrató.
+- **Condicionada al pago completo**: la licencia perpetua solo queda concedida en firme cuando el cliente terminó de pagar lo acordado. Si la relación termina y el cliente **no** pagó completo, el acceso se suspende (por ejemplo, desactivando su/sus cuentas admin o pausando la infraestructura) hasta que liquide el saldo — al pagarlo, recupera la licencia perpetua íntegra, no hay que renegociarla desde cero.
+- Nada de esto se aplica todavía técnicamente (no hay una fecha de pago ni un mecanismo de suspensión automatizado en el código) — es el acuerdo de negocio que rige la relación, documentado aquí para que quede registrado junto con el resto de la arquitectura.
 
 ## PDF
 
