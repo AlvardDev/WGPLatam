@@ -13,16 +13,16 @@ describe("LoginForm", () => {
   it("renders the email and password fields", () => {
     render(<LoginForm />);
     expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ingresar/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /iniciar sesión/i })).toBeInTheDocument();
   });
 
   it("shows a validation error for an invalid email without calling signIn", async () => {
     const user = userEvent.setup();
     render(<LoginForm />);
     await user.type(screen.getByLabelText(/correo/i), "not-an-email");
-    await user.type(screen.getByLabelText(/contraseña/i), "x");
-    await user.click(screen.getByRole("button", { name: /ingresar/i }));
+    await user.type(screen.getByLabelText(/^contraseña$/i), "x");
+    await user.click(screen.getByRole("button", { name: /iniciar sesión/i }));
     expect(await screen.findByText(/correo válido/i)).toBeInTheDocument();
   });
 
@@ -30,10 +30,21 @@ describe("LoginForm", () => {
     const user = userEvent.setup();
     render(<LoginForm />);
     await user.type(screen.getByLabelText(/correo/i), "a@b.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "wrong-password");
-    await user.click(screen.getByRole("button", { name: /ingresar/i }));
+    await user.type(screen.getByLabelText(/^contraseña$/i), "wrong-password");
+    await user.click(screen.getByRole("button", { name: /iniciar sesión/i }));
     await waitFor(() =>
       expect(screen.getByText(/correo o contraseña incorrectos/i)).toBeInTheDocument(),
     );
+  });
+
+  it("toggles password visibility", async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+    const password = screen.getByLabelText(/^contraseña$/i) as HTMLInputElement;
+    expect(password.type).toBe("password");
+    await user.click(screen.getByRole("button", { name: /mostrar contraseña/i }));
+    expect(password.type).toBe("text");
+    await user.click(screen.getByRole("button", { name: /ocultar contraseña/i }));
+    expect(password.type).toBe("password");
   });
 });
