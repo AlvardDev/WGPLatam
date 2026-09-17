@@ -52,7 +52,7 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{imp.file_name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900">{imp.file_name}</h1>
         <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{imp.status}</Badge>
       </div>
       <p className="text-sm text-muted-foreground">

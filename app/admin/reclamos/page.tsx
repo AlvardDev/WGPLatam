@@ -55,7 +55,7 @@ export default async function ReclamosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Reclamos</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Reclamos</h1>
         <p className="text-sm text-muted-foreground">Últimos 100 reclamos, de todas las tiendas.</p>
       </div>
 

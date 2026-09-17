@@ -38,7 +38,7 @@ export default async function AdministradorDetallePage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{admin.full_name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">{admin.full_name}</h1>
           <Badge variant={admin.is_active ? "secondary" : "destructive"}>
             {admin.is_active ? "Activo" : "Desactivado"}
           </Badge>

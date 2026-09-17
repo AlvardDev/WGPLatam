@@ -45,7 +45,7 @@ export default async function TiendasPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tiendas</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Tiendas</h1>
           <p className="text-sm text-muted-foreground">Ubicaciones donde se activan garantías.</p>
         </div>
         <CreateStoreDialog />

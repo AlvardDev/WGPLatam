@@ -46,7 +46,7 @@ export default async function ProductosPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Productos</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Productos</h1>
           <p className="text-sm text-muted-foreground">
             Catálogo de productos y su política de garantía.
           </p>

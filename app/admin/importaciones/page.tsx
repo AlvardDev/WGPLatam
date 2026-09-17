@@ -52,7 +52,7 @@ export default async function ImportacionesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Importaciones</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Importaciones</h1>
           <p className="text-sm text-muted-foreground">Carga masiva de seriales por archivo CSV o Excel.</p>
         </div>
         <Button render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>} />

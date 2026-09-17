@@ -63,7 +63,7 @@ export default async function VendedoresPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Vendedores</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Vendedores</h1>
           <p className="text-sm text-muted-foreground">Cuentas de tienda que pueden activar garantías.</p>
         </div>
         <div className="flex gap-2">

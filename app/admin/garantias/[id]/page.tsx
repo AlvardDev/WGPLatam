@@ -68,7 +68,7 @@ export default async function GarantiaAdminDetallePage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{warranty.product_name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-blue-900">{warranty.product_name}</h1>
             {warranty.voided_at && <Badge variant="destructive">Anulada</Badge>}
           </div>
           <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, ExternalLink } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -161,7 +161,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" render={<Link href={`/admin/seriales/${s.id}`} aria-label="Ver detalle" />}>
-                    <ExternalLink className="size-4" />
+                    <Eye className="size-4" />
                   </Button>
                 </TableCell>
               </TableRow>

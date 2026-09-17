@@ -69,7 +69,7 @@ export default async function ReclamoDetallePage({ params }: { params: Promise<{
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{claim.reason}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-blue-900">{claim.reason}</h1>
             <Badge>{STATUS_LABEL[claim.status] ?? claim.status}</Badge>
           </div>
           <Link href={`/admin/garantias/${claim.warranty_id}`} className="text-sm text-muted-foreground hover:underline">

@@ -60,7 +60,7 @@ export default async function LotesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Lotes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Lotes</h1>
           <p className="text-sm text-muted-foreground">Origen y garantía por defecto de los seriales.</p>
         </div>
         <CreateLotDialog products={products ?? []} />

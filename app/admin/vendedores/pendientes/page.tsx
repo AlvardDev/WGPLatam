@@ -21,7 +21,7 @@ export default async function VendedoresPendientesPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Vendedores pendientes</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Vendedores pendientes</h1>
         <p className="text-sm text-muted-foreground">Solicitudes de restablecer contraseña.</p>
       </div>
 

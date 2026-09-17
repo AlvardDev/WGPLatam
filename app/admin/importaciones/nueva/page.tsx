@@ -18,7 +18,7 @@ export default async function NuevaImportacionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Nueva importación</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Nueva importación</h1>
         <p className="text-sm text-muted-foreground">Carga masiva de seriales desde un archivo CSV o Excel, para un solo lote.</p>
       </div>
       <ImportWizard lots={lots ?? []} />

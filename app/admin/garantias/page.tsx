@@ -46,7 +46,7 @@ export default async function GarantiasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Garantías</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Garantías</h1>
         <p className="text-sm text-muted-foreground">Últimas 100 activaciones, de todas las tiendas.</p>
       </div>
 

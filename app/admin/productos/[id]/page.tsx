@@ -30,7 +30,7 @@ export default async function ProductoDetallePage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-blue-900">{product.name}</h1>
             <p className="font-mono text-sm text-muted-foreground">{product.code}</p>
           </div>
           <Badge variant={product.is_active ? "secondary" : "destructive"}>
