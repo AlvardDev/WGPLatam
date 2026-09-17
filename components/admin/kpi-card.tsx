@@ -18,7 +18,7 @@ export function KpiCard({
   alert?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-white p-5">
+    <div className="flex animate-in items-center gap-4 rounded-xl border bg-white p-5 fade-in slide-in-from-bottom-2 duration-300">
       <span
         className={cn(
           "flex size-11 shrink-0 items-center justify-center rounded-full",
