@@ -1,51 +1,43 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ScanBarcode } from "lucide-react";
+import { CheckCircle2, Lock, ScanBarcode, ShieldCheck, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { KpiCard } from "@/components/admin/kpi-card";
 import { CreateSerialDialog } from "./create-serial-dialog";
+import { SerialesTable, type SerialRow } from "./seriales-table";
+import { PrevPageButton } from "./prev-page-button";
 
 export const metadata: Metadata = { title: "Seriales" };
 
-const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
-  AVAILABLE: "secondary",
-  ACTIVATED: "outline",
-  BLOCKED: "destructive",
-  VOID: "destructive",
-};
-
 const PAGE_SIZE = 50;
 
-// Ver nota de tipos en app/admin/lotes/page.tsx.
-type SerialRow = {
+type SerialQueryRow = {
   id: string;
   serial: string;
   barcode: string;
   status: string;
-  status_reason: string | null;
   created_at: string;
   product_id: string;
   lot_id: string;
   products: { name: string; code: string } | null;
   lots: { code: string } | null;
+  // PostgREST embebe warranties(...) como objeto cuando detecta la
+  // relación 1:1 (serial_id es UNIQUE) pero como array en versiones/casos
+  // donde no la infiere — se normalizan ambas formas abajo en vez de
+  // asumir una sola.
+  warranties: { duration_days: number; customer_name: string } | { duration_days: number; customer_name: string }[] | null;
 };
 
 // Paginación por keyset (created_at desc, id desc), no por offset: es la
 // única tabla de la Fase 2 que de verdad puede llegar a cientos de miles de
-// filas (ver docs/PHASE-2-REVIEW.md, §9). Solo "Siguiente" (forward-only) —
-// suficiente para un listado administrativo, evita la complejidad de un
-// conteo total / paginación bidireccional que nadie va a usar a esa escala.
+// filas (ver docs/PHASE-2-REVIEW.md, §9). Solo "Siguiente" avanza por
+// cursor real; "Anterior" usa el historial del navegador (la URL de cada
+// página ya queda en el historial) en vez de mantener una pila de cursores
+// — decisión explícita del usuario: restylear la paginación, no cambiar su
+// mecanismo (nada de conteo total exacto ni números de página saltables).
 export default async function SerialesPage({
   searchParams,
 }: {
@@ -60,15 +52,20 @@ export default async function SerialesPage({
   const { q, producto, lote, status, cursor } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: products }, { data: lots }] = await Promise.all([
-    supabase.from("products").select("id, code, name").eq("is_active", true).order("name"),
-    supabase.from("lots").select("id, code, product_id").eq("is_active", true).order("code"),
-  ]);
+  const [{ data: products }, { data: lots }, { count: totalSeriales }, { count: disponibles }, { count: activos }, { count: bloqueados }] =
+    await Promise.all([
+      supabase.from("products").select("id, code, name").eq("is_active", true).order("name"),
+      supabase.from("lots").select("id, code, product_id").eq("is_active", true).order("code"),
+      supabase.from("serials").select("id", { count: "exact", head: true }),
+      supabase.from("serials").select("id", { count: "exact", head: true }).eq("status", "AVAILABLE"),
+      supabase.from("serials").select("id", { count: "exact", head: true }).eq("status", "ACTIVATED"),
+      supabase.from("serials").select("id", { count: "exact", head: true }).in("status", ["BLOCKED", "VOID"]),
+    ]);
 
   let query = supabase
     .from("serials")
     .select(
-      "id, serial, barcode, status, status_reason, created_at, product_id, lot_id, products(name, code), lots!serials_lot_id_fkey(code)",
+      "id, serial, barcode, status, created_at, product_id, lot_id, products(name, code), lots!serials_lot_id_fkey(code), warranties(duration_days, customer_name)",
     )
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
@@ -88,13 +85,24 @@ export default async function SerialesPage({
     }
   }
 
-  const { data, error } = await query.returns<SerialRow[]>();
+  const { data, error } = await query.returns<SerialQueryRow[]>();
   if (error) throw new Error("No se pudieron cargar los seriales.");
 
-  const hasMore = (data?.length ?? 0) > PAGE_SIZE;
-  const serials = (data ?? []).slice(0, PAGE_SIZE);
-  const last = serials[serials.length - 1];
+  const hasMore = (data ?? []).length > PAGE_SIZE;
+  const page = (data ?? []).slice(0, PAGE_SIZE);
+  const last = page[page.length - 1];
   const nextCursor = hasMore && last ? `${last.created_at}|${last.id}` : null;
+
+  const serials: SerialRow[] = page.map((s) => ({
+    id: s.id,
+    serial: s.serial,
+    barcode: s.barcode,
+    status: s.status,
+    created_at: s.created_at,
+    products: s.products,
+    lots: s.lots,
+    warranty: Array.isArray(s.warranties) ? (s.warranties[0] ?? null) : s.warranties,
+  }));
 
   const nextParams = new URLSearchParams();
   if (q) nextParams.set("q", q);
@@ -103,19 +111,34 @@ export default async function SerialesPage({
   if (status) nextParams.set("status", status);
   if (nextCursor) nextParams.set("cursor", nextCursor);
 
+  const filteredLots = producto ? (lots ?? []).filter((l) => l.product_id === producto) : (lots ?? []);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Seriales</h1>
-          <p className="text-sm text-muted-foreground">Inventario individual por número de serie.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Seriales</h1>
+          <p className="text-sm text-muted-foreground">Gestiona y consulta todos los seriales de tus productos.</p>
         </div>
-        <CreateSerialDialog products={products ?? []} lots={lots ?? []} />
+        <div className="flex gap-2">
+          <Button variant="outline" render={<Link href="/admin/importaciones/nueva" />}>
+            <Upload className="size-4" />
+            Importar seriales
+          </Button>
+          <CreateSerialDialog products={products ?? []} lots={lots ?? []} />
+        </div>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard icon={ScanBarcode} label="Total de seriales" value={(totalSeriales ?? 0).toLocaleString("es")} />
+        <KpiCard icon={CheckCircle2} label="Disponibles" value={(disponibles ?? 0).toLocaleString("es")} />
+        <KpiCard icon={ShieldCheck} label="Activos (con garantía)" value={(activos ?? 0).toLocaleString("es")} />
+        <KpiCard icon={Lock} label="Bloqueados / Anulados" value={(bloqueados ?? 0).toLocaleString("es")} alert={(bloqueados ?? 0) > 0} />
+      </div>
+
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="w-full max-w-xs">
-          <Input type="search" name="q" placeholder="Serial o código de barras exacto..." defaultValue={q ?? ""} />
+          <Input type="search" name="q" placeholder="Buscar por serial o código de barras..." defaultValue={q ?? ""} />
         </div>
         <select
           name="producto"
@@ -126,6 +149,18 @@ export default async function SerialesPage({
           {(products ?? []).map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="lote"
+          defaultValue={lote ?? ""}
+          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="">Todos los lotes</option>
+          {filteredLots.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.code}
             </option>
           ))}
         </select>
@@ -143,6 +178,9 @@ export default async function SerialesPage({
         <Button type="submit" variant="outline">
           Filtrar
         </Button>
+        {(q || producto || lote || status) && (
+          <Button variant="ghost" render={<Link href="/admin/seriales">Limpiar filtros</Link>} />
+        )}
       </form>
 
       {serials.length === 0 ? (
@@ -153,41 +191,20 @@ export default async function SerialesPage({
         />
       ) : (
         <>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Serial</TableHead>
-                  <TableHead>Código de barras</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Lote</TableHead>
-                  <TableHead>Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {serials.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium hover:underline">
-                        {s.serial}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{s.barcode}</TableCell>
-                    <TableCell className="text-sm">{s.products?.name}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{s.lots?.code}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT[s.status] ?? "outline"}>{s.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          {nextCursor && (
-            <div className="flex justify-end">
-              <Button variant="outline" render={<Link href={`/admin/seriales?${nextParams.toString()}`}>Siguiente</Link>} />
+          <SerialesTable serials={serials} />
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {serials.length} de {(totalSeriales ?? 0).toLocaleString("es")} seriales
+            </p>
+            <div className="flex gap-2">
+              <PrevPageButton hasCursor={!!cursor} />
+              {nextCursor && (
+                <Button variant="outline" size="icon" render={<Link href={`/admin/seriales?${nextParams.toString()}`} aria-label="Siguiente" />}>
+                  →
+                </Button>
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
     </div>

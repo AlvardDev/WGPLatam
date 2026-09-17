@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/layout/app-shell";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 /**
  * Segundo checkpoint además de proxy.ts: si por lo que sea alguien llega
@@ -24,9 +24,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
+  const { count: failedNotifications } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "FAILED");
+
   return (
-    <AppShell role={profile.role as "admin" | "superadmin"} fullName={profile.full_name}>
+    <AdminShell
+      role={profile.role as "admin" | "superadmin"}
+      fullName={profile.full_name}
+      failedNotifications={failedNotifications ?? 0}
+    >
       {children}
-    </AppShell>
+    </AdminShell>
   );
 }
