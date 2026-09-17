@@ -132,3 +132,27 @@
     @apply font-sans;
   }
 }
+
+/* Usado por el checklist de requisitos de contraseña (admin-form.tsx) vía
+   la clase arbitraria animate-[shake_0.4s_ease-in-out] — Tailwind v4
+   referencia estos @keyframes globales sin necesidad de registrarlos en
+   @theme. */
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
