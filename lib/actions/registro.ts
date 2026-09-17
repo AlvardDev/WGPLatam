@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,6 +21,11 @@ function friendlyRegisterError(message: string): string {
   return "No se pudo completar el registro. Intenta de nuevo.";
 }
 
+async function clientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+}
+
 /**
  * Auto-registro de vendedor (público, sin sesión). A diferencia de
  * inviteSeller (lib/actions/sellers.ts), acá el propio vendedor elige su
@@ -28,6 +34,9 @@ function friendlyRegisterError(message: string): string {
  * docs/PROGRESS.md, "E2E real..."). private.handle_new_user() deja el
  * perfil en role=null/is_active=false (sin acceso a nada, RLS lo bloquea
  * todo) hasta que un admin lo apruebe desde /admin/vendedores/pendientes.
+ * Throttle de 5 registros/hora por IP (check_registration_throttle) —
+ * mitiga el riesgo de scripting de registros falsos anotado en
+ * docs/SECURITY.md.
  */
 export async function registerSeller(
   input: SellerRegisterInput,
@@ -35,6 +44,12 @@ export async function registerSeller(
   const parsed = sellerRegisterSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   const { email, fullName, storeId, password } = parsed.data;
+
+  const supabase = await createClient();
+  const { error: throttleError } = await supabase.rpc("check_registration_throttle", {
+    p_ip: await clientIp(),
+  });
+  if (throttleError) return { error: "Demasiados intentos de registro. Intenta más tarde." };
 
   const adminClient = createAdminClient();
 
