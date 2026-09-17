@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, is_active")
+    .select("full_name, role, is_active, onboarding_completed_at")
     .eq("id", claims.claims.sub)
     .single();
 
@@ -34,6 +34,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       role={profile.role as "admin" | "superadmin"}
       fullName={profile.full_name}
       failedNotifications={failedNotifications ?? 0}
+      showOnboarding={!profile.onboarding_completed_at}
     >
       {children}
     </AdminShell>

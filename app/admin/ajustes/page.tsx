@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
 import { NotificationSettingsForm } from "./notification-settings-form";
+import { ReplayOnboardingCard } from "./replay-onboarding-card";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -66,6 +67,7 @@ export default async function AjustesPage() {
           adminNotificationEmails: (notificationSettings.admin_notification_emails ?? []).join("\n"),
         }}
       />
+      <ReplayOnboardingCard />
     </div>
   );
 }
