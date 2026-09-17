@@ -53,7 +53,9 @@ export function AdminForm({
   });
 
   const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
   const touched = password.length > 0;
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const unmetRequirements = PASSWORD_REQUIREMENTS.filter((r) => !r.test(password));
 
   const onValid = (values: FormValues) => {
@@ -118,7 +120,13 @@ export function AdminForm({
 
         <Field>
           <FieldLabel htmlFor="confirmPassword">Confirmar contraseña</FieldLabel>
-          <Input id="confirmPassword" type="password" autoComplete="new-password" {...register("confirmPassword")} />
+          <Input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={mismatch}
+            {...register("confirmPassword")}
+          />
         </Field>
 
         <div className="space-y-1.5">
@@ -126,22 +134,15 @@ export function AdminForm({
             const met = touched && req.test(password);
             const failed = touched && !met;
             return (
-              <div
-                key={failed ? `${req.key}-${shakeAt}` : req.key}
-                className={cn(
-                  "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
-                  met && "border-emerald-500 bg-emerald-50 text-emerald-700",
-                  failed && "border-red-500 bg-red-50 text-red-700",
-                  !touched && "border-input text-muted-foreground",
-                  failed && shakeAt > 0 && "animate-[shake_0.4s_ease-in-out] shadow-[0_0_0_3px_rgba(239,68,68,0.35)]",
-                )}
-              >
+              <div key={req.key} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span
+                  key={failed ? `${req.key}-${shakeAt}` : req.key}
                   className={cn(
-                    "flex size-4 shrink-0 items-center justify-center rounded-full border",
+                    "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors",
                     met && "border-emerald-500 bg-emerald-500 text-white",
                     failed && "border-red-500 bg-red-500 text-white",
                     !touched && "border-muted-foreground/40",
+                    failed && shakeAt > 0 && "animate-[shake_0.4s_ease-in-out] shadow-[0_0_6px_2px_rgba(239,68,68,0.6)]",
                   )}
                 >
                   {met ? <Check className="size-3" /> : failed ? <X className="size-3" /> : null}
