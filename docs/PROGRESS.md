@@ -2,6 +2,55 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Throttle de fuerza bruta en /login (2026-09-17)
+
+Decisión explícita del usuario, a continuación de la reversión del auto-registro: si un correo
+autorizado (invitado por admin) recibe 5 intentos de contraseña incorrectos, debe esperar antes de
+poder reintentar — hasta ahora el único límite era el genérico de Supabase Auth.
+
+- Migración `20260918060000_login_throttle.sql`: tabla `login_attempts` (`email` normalizado,
+  ventana fija de 15 min) + 3 RPC públicas — `check_login_throttle` (rechaza si ya hay 5+ fallos
+  en la ventana, se llama antes de `signInWithPassword`), `record_failed_login` (solo si
+  `signInWithPassword` falla) y `clear_login_attempts` (tras un login exitoso, para que un typo
+  aislado no cuente contra un intento legítimo después). 3 funciones en vez de 1 porque, a
+  diferencia de `check_registration_throttle`, acá el resultado del intento se conoce recién
+  después de llamar a Supabase Auth.
+- `lib/actions/auth.ts` (`signIn`): llama las 3 en el orden check → intento → record/clear. Mensaje
+  de error distinto para "bloqueado" vs. "credenciales incorrectas".
+- pgTAP nuevo `15_login_throttle.sql` (10/10): 5 fallos permitidos, el 6to bloquea, normalización de
+  mayúsculas/espacios comparte el contador, un correo distinto no lo comparte, y `clear_login_
+  attempts` desbloquea. Aplicado y corrido contra `vebuujkumccbtxaavida` vía MCP de Supabase (ver
+  `CLAUDE.md`: cuenta correcta de chino, reconectada explícitamente por el usuario para esta sesión
+  — no la de "AlvardDev's Org").
+- Docs vivas actualizadas: `SECURITY.md` (fila "Fuerza bruta de login"), `DATABASE.md` (tabla +
+  3 RPC nuevas).
+
+## Reversión del auto-registro de vendedores (2026-09-16)
+
+Decisión explícita del usuario, el mismo día que se implementó: el sistema debe ser **solo login**
+— si un correo no fue dado de alta por un admin (con el rol de tienda asignado), no puede entrar.
+Se revierte por completo la sección "Auto-registro de vendedores + aprobación manual" de abajo; esa
+entrada **no se reescribe** (registro histórico de lo que era cierto en su momento). Queda
+únicamente la alta de vendedor por invitación de admin (Fase 4, `lib/actions/sellers.ts`, sin
+cambios) — un correo sin fila en `auth.users` simplemente no puede iniciar sesión.
+
+- Eliminado: página pública `/registro` y su formulario, `registerSeller`/`listPendingSignups`/
+  `approveSignup`/`rejectSignup` (`lib/actions/registro.ts`), `sellerRegisterSchema`
+  (`lib/validation/registro.ts`), la sección "Registros pendientes" y `signup-actions.tsx` en
+  `/admin/vendedores/pendientes`, y el link "¿No tienes cuenta? Regístrate" del login.
+- Base de datos: migración nueva `20260918050000_drop_seller_self_registration.sql` da de baja
+  `check_registration_throttle` y la tabla `registration_attempts` (exclusivos del auto-registro).
+  `seller_password_reset_requests` y sus 2 RPC (`request_seller_password_reset`,
+  `admin_resolve_password_reset_request`) **quedan intactos** — es la recuperación de contraseña de
+  un vendedor ya activo (dado de alta por invitación), no una forma de registro; se mantiene el
+  pgTAP `14_seller_self_registration.sql` (ya solo cubría ese RPC). Se borró el pgTAP
+  `15_registration_throttle.sql` (probaba la función eliminada).
+- `proxy.ts`: la ruta `/pendiente` y la regla de sesión-sin-rol se mantienen tal cual (siguen
+  siendo necesarias para el hueco entre `inviteUserByEmail` y `admin_finalize_seller_profile` si
+  ese segundo paso falla) — solo se actualizaron los comentarios que hablaban de auto-registro.
+- Docs vivas actualizadas a su estado actual (no histórico): `ARCHITECTURE.md`, `SECURITY.md`,
+  `DATABASE.md`.
+
 ## Auto-registro de vendedores + aprobación manual (2026-09-16)
 
 Decisión explícita del usuario, durante el E2E real: el flujo de invitación por correo de

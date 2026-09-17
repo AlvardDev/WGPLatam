@@ -30,8 +30,8 @@
 | `notifications` | `type`, `recipient`, `payload`, `status` (`PENDING`\|`SENT`\|`FAILED`), `attempts`, `last_error`, `sent_at` | Outbox; ver `ARCHITECTURE.md` "Notificaciones" |
 | `app_settings` | fila única, campos **públicos** (ver abajo) | CHECK de fila única |
 | `notification_settings` | fila única, campos **admin-only** (ver abajo) | CHECK de fila única |
-| `seller_password_reset_requests` | `user_id` (→ `profiles.id`, unique), `requested_at` | Fase 9: un vendedor activo pidió restablecer su contraseña (auto-registro, sin correo). `unique(user_id)`: pedir de nuevo solo actualiza la fecha. Nunca contiene la contraseña — la aplica el admin directo vía `auth.admin.updateUserById`, ver "RPC críticos" |
-| `registration_attempts` | `ip` (primary key), `window_start`, `attempts` | Fase 9: throttle de `/registro` por IP (ventana fija de 1 hora, 5 intentos), mismo patrón que `lookup_serial_attempts` pero sin `auth.uid()` |
+| `seller_password_reset_requests` | `user_id` (→ `profiles.id`, unique), `requested_at` | Fase 9: un vendedor activo (dado de alta por invitación) pidió restablecer su contraseña, sin correo. `unique(user_id)`: pedir de nuevo solo actualiza la fecha. Nunca contiene la contraseña — la aplica el admin directo vía `auth.admin.updateUserById`, ver "RPC críticos" |
+| `login_attempts` | `email` (primary key, normalizado), `window_start`, `attempts` | Fase 9: throttle de `/login` (ventana fija de 15 min, 5 intentos fallidos), mismo patrón que `lookup_serial_attempts` pero por correo — el intento de login ocurre sin sesión |
 
 ### `app_settings` (SELECT: admin y seller — necesarios para el comprobante y la UI)
 
@@ -115,8 +115,10 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 | `admin_finalize_admin_profile(user_id, full_name)` | superadmin | Mismo patrón que `admin_finalize_seller_profile` pero sin `store_id` (un admin/superadmin nunca tiene tienda) y como `role = 'admin'`. Gated por `private.is_superadmin()`, no `is_admin()` — un admin normal no puede invocarla |
 | `request_seller_password_reset(email)` | público (`anon`) | Fase 9: un vendedor que olvidó su contraseña deja constancia en `seller_password_reset_requests`. Nunca revela si el correo existe ni si es de un vendedor (silencioso sin match) |
 | `admin_resolve_password_reset_request(request_id)` | admin | Borra una solicitud ya resuelta a mano (después de que `lib/actions/registro.ts` ya aplicó la contraseña nueva vía `auth.admin.updateUserById`) |
-| `check_registration_throttle(ip)` | público (`anon`) | Fase 9: límite de 5 registros/hora por IP contra `/registro`. Levanta excepción si se supera; `registerSeller` la llama antes de crear el usuario |
 | `admin_set_admin_active(user_id, is_active)` | superadmin | Activa/desactiva un perfil `role = 'admin'` (`target is not an admin` si no lo es, incluido el caso de apuntar a otro superadmin o a sí mismo — deliberado, evita bloquear el único acceso) |
+| `check_login_throttle(email)` | público (`anon`) | Fase 9: rechaza el intento de login si ya hubo 5+ fallos en los últimos 15 min para ese correo (normalizado). Solo lee; `lib/actions/auth.ts` la llama antes de `signInWithPassword` |
+| `record_failed_login(email)` | público (`anon`) | Fase 9: suma un intento fallido al contador de ese correo. `lib/actions/auth.ts` la llama solo cuando `signInWithPassword` devuelve error |
+| `clear_login_attempts(email)` | público (`anon`) | Fase 9: borra el contador tras un login exitoso, para que un typo aislado no cuente contra un intento legítimo posterior |
 
 Toda función `SECURITY DEFINER`: `search_path = ''`, nombres calificados, `REVOKE EXECUTE FROM public, anon`, verificación del llamante al inicio, y **ningún parámetro de identidad confiado a ciegas** (`store_id`, `role`, fechas) — siempre se derivan de `auth.uid()` contra `profiles`. Ver checklist completo en `SECURITY.md`.
 

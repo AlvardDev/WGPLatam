@@ -25,10 +25,23 @@ export async function signIn(input: LoginInput): Promise<{ error: string } | voi
   }
 
   const supabase = await createClient();
+
+  // Throttle de fuerza bruta (Fase 9, ver 20260918060000_login_throttle.sql):
+  // 5 intentos fallidos / 15 min por correo, antes de siquiera llamar a
+  // Supabase Auth.
+  const { error: throttleError } = await supabase.rpc("check_login_throttle", {
+    p_email: parsed.data.email,
+  });
+  if (throttleError) {
+    return { error: "Demasiados intentos fallidos. Espera unos minutos e intenta de nuevo." };
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error || !data.user) {
+    await supabase.rpc("record_failed_login", { p_email: parsed.data.email });
     return { error: "Correo o contraseña incorrectos." };
   }
+  await supabase.rpc("clear_login_attempts", { p_email: parsed.data.email });
 
   // Best-effort: si falla el registro de auditoría no debe bloquear el login.
   await supabase.rpc("log_audit_event", { p_action: "login" });

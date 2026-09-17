@@ -76,9 +76,6 @@ export function LoginForm() {
           >
             ¿Eres vendedor y olvidaste tu contraseña?
           </Link>
-          <Link href="/registro" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
-            ¿Eres vendedor y no tienes cuenta? Regístrate
-          </Link>
         </div>
       </CardContent>
     </Card>

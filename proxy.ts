@@ -97,10 +97,9 @@ export async function proxy(request: NextRequest) {
   // /recuperar, esa página necesita una sesión autenticada para funcionar
   // (supabase.auth.updateUser) — es el destino del enlace de recuperación,
   // no una página de la que haya que sacar a alguien ya logueado.
-  // Coincidencia exacta, no startsWith: "/recuperar-vendedor" y "/registro"
-  // son públicas mientras haya o no sesión, no deben rebotar a un
-  // administrador ya logueado (startsWith("/recuperar") atrapaba también
-  // "/recuperar-vendedor" por accidente).
+  // Coincidencia exacta, no startsWith: "/recuperar-vendedor" es pública
+  // mientras haya o no sesión, no debe rebotar a un administrador ya
+  // logueado (startsWith("/recuperar") la atrapaba también por accidente).
   const isAuthPage = pathname.startsWith("/login") || pathname === "/recuperar";
   const isPendingPage = pathname === "/pendiente";
 
@@ -113,12 +112,13 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   };
 
-  // Sesión real pero sin rol asignado todavía (auto-registro de vendedor
-  // esperando aprobación — Fase 9, "seller_self_registration" — o el viejo
-  // bootstrap manual sin metadata): RLS ya bloquea todo el acceso a datos,
-  // esto solo evita dejarlo varado en /login o en un área protegida sin
-  // explicación. Se resuelve antes que cualquier otra regla porque ninguna
-  // de las siguientes tiene sentido para un rol nulo.
+  // Sesión real pero sin rol asignado todavía (invitación de vendedor que
+  // aceptó el correo pero cuyo app_metadata/RPC de finalización falló a
+  // mitad de camino, o el viejo bootstrap manual sin metadata): RLS ya
+  // bloquea todo el acceso a datos, esto solo evita dejarlo varado en
+  // /login o en un área protegida sin explicación. Se resuelve antes que
+  // cualquier otra regla porque ninguna de las siguientes tiene sentido
+  // para un rol nulo.
   if (claims && !role) {
     if (!isPendingPage) return redirectWithCsp("/pendiente");
     response.headers.set("Content-Security-Policy", csp);

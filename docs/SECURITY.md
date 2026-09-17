@@ -27,9 +27,9 @@
 | Manipulación de fechas | RPC sin parámetros de fecha; `now()` de la base |
 | Modificar garantías históricas | Trigger de inmutabilidad sobre fechas y snapshot |
 | Borrado de auditoría | Trigger que bloquea UPDATE/DELETE incluso a `service_role` |
-| Fuerza bruta de login | Rate limits de Supabase Auth + MFA en admin |
+| Fuerza bruta de login | Rate limits de Supabase Auth + MFA en admin + throttle propio: 5 intentos fallidos/15 min por correo normalizado (`login_attempts`, `check_login_throttle`/`record_failed_login`/`clear_login_attempts`, Fase 9) |
 | Enumeración de seriales | `lookup_serial` exacto con datos mínimos; throttle de 30 intentos/minuto por usuario (`lookup_serial_attempts`, Fase 8) |
-| Registro público de vendedor (`/registro`, sin correo, Fase 9) scriptable | Aprobación manual de admin es el filtro real (un registro no aprobado no tiene ningún acceso), más `check_registration_throttle`: 5 registros/hora por IP (`registration_attempts`, mismo patrón de ventana fija que `lookup_serial_attempts` pero sin `auth.uid()` — el registrante no tiene sesión) |
+| Alta de cuenta con correo no autorizado | No existe registro público (se probó y se revirtió, Fase 9 → ver PROGRESS.md); la única alta de vendedor es la invitación del admin, `signInWithPassword` rechaza cualquier correo sin fila en `auth.users` |
 | Restablecer contraseña de vendedor sin correo (Fase 9) | `request_seller_password_reset` nunca revela si el correo existe; la contraseña nueva la escribe el admin directo en `/admin/vendedores/pendientes` tras confirmar identidad por fuera (llamada/WhatsApp) — nunca se guarda en ninguna tabla, ni temporalmente |
 | Archivos maliciosos o enormes | Parseo en el cliente; revalidación de cada fila en el servidor; límites de tamaño y filas; solo admin |
 | Headers | HSTS, `frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy: camera=(self)`, `X-Content-Type-Options` (`next.config.ts`); CSP con nonce por request (`proxy.ts`, `script-src 'strict-dynamic'`) — implica renderizado dinámico en toda la app (`export const dynamic = "force-dynamic"` en `app/layout.tsx`), ver `node_modules/next/dist/docs/.../content-security-policy.md` |
