@@ -2,6 +2,46 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Primer despliegue a Vercel (2026-09-17)
+
+El código quedó desplegado en producción: **https://wgp-latam.vercel.app** (proyecto `wgp-latam` en la
+cuenta de Vercel de AlvardDev — ver `CLAUDE.md`, "Cuentas", por qué ya no es una cuenta separada).
+Repo conectado: `https://github.com/AlvardDev/WGPLatam.git`. Variables de entorno configuradas en
+Vercel (Settings → Environment Variables): `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` — mismos valores que `.env.local`, sin
+`RESEND_API_KEY` (Resend descartado). Build limpio, verificado en vivo: `/login` carga bien y sin el
+link de auto-registro (confirma que la reversión de esta misma sesión llegó a producción).
+
+**Problema encontrado: el auto-deploy en cada `git push` no arrancaba.** Los primeros 2 intentos
+después de crear el proyecto (uno automático al importar, uno tras un push vacío de prueba) no
+generaron ningún deployment — ni éxito ni error, cero filas en `/deployments` y cero eventos en
+`/settings/activity` más allá de "you created project". La integración Git se veía perfecta en
+`Settings → Git` (repo conectado, `deployment_status Events` activo) y la GitHub App de Vercel tenía
+acceso "All repositories" — nada mal configurado a simple vista.
+
+- **Workaround usado para no bloquear el despliegue**: `npx vercel login` (device flow, confirmado
+  en el navegador ya logueado) → `npx vercel link --yes --project wgp-latam` → `npx vercel --prod`.
+  Deploya directo desde el código local, sin depender del webhook de GitHub.
+- **Causa real, confirmada después**: es un retraso de propagación de la suscripción del webhook de
+  la GitHub App recién creada — no una mala configuración permanente. Un tercer push (~15-20 min
+  después de crear el proyecto), sin tocar nada más, sí disparó el build automáticamente (se ve en
+  `/deployments` con el ícono de rama git en vez del ícono de terminal que marca los deploys por
+  CLI). No hizo falta reconectar ni reinstalar nada.
+
+**Qué hacer si vuelve a pasar (proyecto nuevo en Vercel que no auto-despliega):**
+1. No asumas que algo está mal configurado — revisá primero `Settings → Git` en el proyecto de
+   Vercel (repo conectado, no dice "Disconnected") y `github.com/settings/installations` (la app de
+   Vercel con acceso "All repositories" o al repo específico). Si ambos se ven bien, probablemente es
+   solo el delay de propagación de arriba.
+2. Esperá unos minutos y hacé otro push (aunque sea vacío: `git commit --allow-empty -m "..." && git
+   push`). Si dispara, era el delay.
+3. Si necesitás el deploy ya (no podés esperar): `npx vercel login` → `npx vercel link --yes
+   --project <nombre>` → `npx vercel --prod`. Esto no arregla el auto-deploy, solo lo evita para esa
+   vez — seguí probando con pushes normales después.
+4. Si después de 20-30 min y varios pushes real seguís sin nada en `/deployments` ni en
+   `/settings/activity`, ahí sí revisar más a fondo (desconectar/reconectar el repo desde `Settings →
+   Git`, o reinstalar la GitHub App).
+
 ## Throttle de fuerza bruta en /login (2026-09-17)
 
 Decisión explícita del usuario, a continuación de la reversión del auto-registro: si un correo

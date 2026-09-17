@@ -12,8 +12,9 @@ Stack: Next.js 16 (App Router) + React 19 + TypeScript + Supabase (Postgres, Aut
 
 ## Cuentas
 
-- El repo de GitHub y el proyecto Supabase de este sistema son **nuevos** y usan otra cuenta.
-- **No** usar la cuenta de Supabase conectada por MCP en este entorno (org "AlvardDev's Org") para este proyecto.
+- El proyecto Supabase de este sistema es **nuevo** y usa otra cuenta (no la de "AlvardDev's Org").
+- **No** usar la cuenta de Supabase conectada por MCP en este entorno para este proyecto salvo que se confirme explícitamente (con `list_organizations`/`list_projects`) que apunta a la cuenta correcta — no persiste siempre entre sesiones.
+- El repo de GitHub (`https://github.com/AlvardDev/WGPLatam.git`) vive en la cuenta personal de AlvardDev, no en una cuenta separada — se intentó una cuenta de GitHub/Vercel distinta ("WGPLatam") pero Vercel exigía verificación por SMS con un número no disponible, así que se decidió (2026-09-17) usar la misma cuenta de GitHub/Vercel que el resto de los proyectos.
 
 ## Roles
 
