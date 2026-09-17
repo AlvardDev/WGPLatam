@@ -66,9 +66,18 @@ export function LoginForm() {
             </Button>
           </FieldGroup>
         </form>
-        <div className="mt-4 text-center text-sm">
+        <div className="mt-4 flex flex-col items-center gap-1 text-center text-sm">
           <Link href="/recuperar" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
             ¿Olvidaste tu contraseña?
+          </Link>
+          <Link
+            href="/recuperar-vendedor"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            ¿Eres vendedor y olvidaste tu contraseña?
+          </Link>
+          <Link href="/registro" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            ¿Eres vendedor y no tienes cuenta? Regístrate
           </Link>
         </div>
       </CardContent>

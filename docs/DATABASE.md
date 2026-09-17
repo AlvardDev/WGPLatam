@@ -30,6 +30,7 @@
 | `notifications` | `type`, `recipient`, `payload`, `status` (`PENDING`\|`SENT`\|`FAILED`), `attempts`, `last_error`, `sent_at` | Outbox; ver `ARCHITECTURE.md` "Notificaciones" |
 | `app_settings` | fila única, campos **públicos** (ver abajo) | CHECK de fila única |
 | `notification_settings` | fila única, campos **admin-only** (ver abajo) | CHECK de fila única |
+| `seller_password_reset_requests` | `user_id` (→ `profiles.id`, unique), `requested_at` | Fase 9: un vendedor activo pidió restablecer su contraseña (auto-registro, sin correo). `unique(user_id)`: pedir de nuevo solo actualiza la fecha. Nunca contiene la contraseña — la aplica el admin directo vía `auth.admin.updateUserById`, ver "RPC críticos" |
 
 ### `app_settings` (SELECT: admin y seller — necesarios para el comprobante y la UI)
 
@@ -111,6 +112,8 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 | `admin_finalize_seller_profile(user_id, full_name, store_id)` | admin | Completa un perfil sin aprovisionar (`role is null`, creado por el trigger tras `auth.admin.inviteUserByEmail`) como vendedor activo de la tienda dada. Falla si el perfil ya tiene rol (`already provisioned`), si la tienda no existe/está inactiva, o si el nombre viene vacío. Se llama con la sesión normal del admin (no con service role) para que `auth.uid()` sea el admin real y `audit_profiles` audite con el actor correcto |
 | `admin_set_seller_active(user_id, is_active)` | admin | Activa/desactiva un perfil `role = 'seller'` (`target is not a seller` si no lo es). RLS ya corta el acceso a datos de inmediato (evalúa `is_active` en tabla, no en el JWT); el ban/unban en Supabase Auth para matar el refresh token se hace aparte, con el cliente de service role, desde `lib/actions/sellers.ts` |
 | `admin_finalize_admin_profile(user_id, full_name)` | superadmin | Mismo patrón que `admin_finalize_seller_profile` pero sin `store_id` (un admin/superadmin nunca tiene tienda) y como `role = 'admin'`. Gated por `private.is_superadmin()`, no `is_admin()` — un admin normal no puede invocarla |
+| `request_seller_password_reset(email)` | público (`anon`) | Fase 9: un vendedor que olvidó su contraseña deja constancia en `seller_password_reset_requests`. Nunca revela si el correo existe ni si es de un vendedor (silencioso sin match) |
+| `admin_resolve_password_reset_request(request_id)` | admin | Borra una solicitud ya resuelta a mano (después de que `lib/actions/registro.ts` ya aplicó la contraseña nueva vía `auth.admin.updateUserById`) |
 | `admin_set_admin_active(user_id, is_active)` | superadmin | Activa/desactiva un perfil `role = 'admin'` (`target is not an admin` si no lo es, incluido el caso de apuntar a otro superadmin o a sí mismo — deliberado, evita bloquear el único acceso) |
 
 Toda función `SECURITY DEFINER`: `search_path = ''`, nombres calificados, `REVOKE EXECUTE FROM public, anon`, verificación del llamante al inicio, y **ningún parámetro de identidad confiado a ciegas** (`store_id`, `role`, fechas) — siempre se derivan de `auth.uid()` contra `profiles`. Ver checklist completo en `SECURITY.md`.

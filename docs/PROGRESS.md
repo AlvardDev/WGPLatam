@@ -2,6 +2,57 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Auto-registro de vendedores + aprobación manual (2026-09-16)
+
+Decisión explícita del usuario, durante el E2E real: el flujo de invitación por correo de
+vendedores quedó bloqueado por el límite de 2 correos/hora del proveedor de email incluido de
+Supabase (sin dominio propio todavía no se puede configurar Resend para levantar ese límite — ver
+sección de arriba). En vez de esperar a tener infraestructura de correo, se decidió que el
+**vendedor se auto-registre** y un **admin/superadmin lo apruebe manualmente** desde un módulo
+nuevo — cero dependencia de correo para dar de alta o recuperar el acceso de un vendedor. Alcance:
+**solo vendedores** (admin/superadmin siguen invitándose por correo entre ellos, como hasta ahora
+— evento raro, no vale la pena cambiarlo).
+
+- **Registro** (`/registro`, público): el vendedor elige tienda, nombre, correo y su propia
+  contraseña. `lib/actions/registro.ts` (`registerSeller`) usa `auth.admin.createUser(...,
+  { email_confirm: true })` — nunca dispara el correo de confirmación que Supabase mandaría por
+  defecto. `private.handle_new_user()` (Fase 1, sin cambios) ya deja el perfil en
+  `role = null, is_active = false` — el mismo estado "sin aprovisionar" del bootstrap manual
+  histórico, sin acceso a nada por RLS.
+- **Espera** (`/pendiente`): nueva regla en `proxy.ts` — cualquier sesión con claims pero sin rol
+  aterriza ahí en vez de quedar varada en `/login` o rebotando a un área protegida. Se resuelve
+  antes que cualquier otra regla del proxy.
+- **Aprobación** (`/admin/vendedores/pendientes`): lista los auto-registros (`listPendingSignups`,
+  vía `profiles.role is null` + `auth.admin.getUserById` para el correo/metadata) con nombre,
+  correo y tienda solicitada prellenados. "Aprobar" reusa el mismo RPC que ya cerraba el flujo de
+  invitación (`admin_finalize_seller_profile`, Fase 4, sin cambios). "Rechazar" borra el usuario de
+  Auth (cascada a `profiles`).
+- **Restablecer contraseña sin correo**: `/recuperar-vendedor` (público, solo correo, nunca revela
+  si existe) llama al RPC nuevo `request_seller_password_reset`, que deja constancia en la tabla
+  nueva `seller_password_reset_requests` (upsert por `user_id`, no acumula filas si piden varias
+  veces). El admin ve la solicitud en el mismo módulo, **confirma la identidad por fuera del
+  sistema (llamada/WhatsApp)** y escribe la contraseña nueva ahí mismo — se aplica al instante vía
+  `auth.admin.updateUserById` y **nunca se guarda en ninguna tabla**, ni siquiera de forma
+  temporal. Deliberado: evita cualquier plaintext de contraseña en la base de datos, a costa de que
+  el admin tenga que comunicarla por fuera.
+- Migraciones: `20260918020000_seller_self_registration.sql` (tabla + 2 RPC) y
+  `20260918030000_fix_seller_password_reset_requests_grant.sql` (fix real encontrado en la propia
+  verificación: RLS no reemplaza el `GRANT` base de la tabla — `permission denied` para admin pese
+  a cumplir la política, hasta agregar `grant select ... to authenticated`).
+- **Riesgo aceptado, no resuelto todavía**: el registro público no tiene límite de intentos por IP
+  (alguien podría scriptear registros falsos). Como el sistema sigue en localhost sin desplegar, se
+  deja como pendiente pre-lanzamiento en vez de construir un throttle que hoy no hace falta — ver
+  `docs/SECURITY.md`, "Riesgos y mitigaciones".
+- Verificado en vivo (cuenta de prueba desechable, no de una persona real): registro → aparece en
+  el módulo con la tienda solicitada → aprobar → vendedor activo en `/admin/vendedores` → solicitud
+  de restablecer contraseña → aparece en el módulo → aplicar contraseña → solicitud desaparece.
+  `tsc --noEmit`, `npm run lint`, `npx vitest run` (93/93 — 9 nuevos en `lib/validation/registro.test.ts`),
+  `npm run build` y Supabase Advisors sin hallazgos nuevos, todos PASS después del fix del GRANT.
+  pgTAP nuevo (`14_seller_self_registration.sql`, 11/11) contra el RPC público y la RLS de
+  `seller_password_reset_requests` — corrido vía el MCP de Supabase con la misma técnica de
+  envoltura de las fases anteriores (tabla temporal + `raise exception` para forzar rollback y
+  obtener un resumen limpio de una sola vez).
+
 ## Migración a un proyecto Supabase nuevo y limpio (2026-09-16)
 
 Decisión explícita del usuario dentro de la Fase 9: el proyecto original (`eaxzhjodudrshblvcghv`,
@@ -35,6 +86,52 @@ empezar de cero en vez de seguir arrastrando esa deuda.
 - Las referencias a `eaxzhjodudrshblvcghv` en los checkpoints de fases anteriores (F1-F8, más abajo
   en este documento) **no se reescribieron** — son registro histórico de lo que era cierto en su
   momento, igual que un commit de git no se reescribe.
+
+## E2E real contra el proyecto nuevo — 3 bugs encontrados y corregidos (2026-09-16)
+
+Primer recorrido end-to-end real del sistema (tienda → producto → lote → serial →
+vendedor), hecho a mano desde la UI como superadmin. Encontró 3 bugs reales que
+ningún pgTAP ni QA anterior podía atrapar porque requerían el flujo completo de
+Auth con un correo real:
+
+1. **Invitaciones rotas desde la migración de proyecto**: `.env.local` seguía con
+   `SUPABASE_SECRET_KEY=placeholder-not-a-real-secret` (nunca se actualizó al migrar
+   a `vebuujkumccbtxaavida`, ver sección de arriba). Todo lo que usa
+   `lib/supabase/admin.ts` — invitar vendedor, invitar admin, banear/desbanear —
+   fallaba en silencio (`inviteUserByEmail` contra una clave inválida, sin crear el
+   usuario, con el auth log del proyecto sin ninguna entrada de la llamada).
+   Corregido con la clave real del proyecto nuevo; servidor de dev reiniciado para
+   recargarla (Next.js no recarga `.env.local` en caliente).
+2. **`proxy.ts` sacaba al vendedor de `/actualizar-clave` antes de poder poner
+   contraseña**: la regla "si ya hay sesión y estás en una página de auth, redirige
+   a tu home" trataba `/actualizar-clave` igual que `/login`/`/recuperar`. Pero
+   `/actualizar-clave` es distinta: el enlace de invitación/recuperación de
+   Supabase autentica primero (deja `claims` con rol) y *después* debe dejar elegir
+   contraseña — con la regla vieja, el proxy redirigía a `/tienda` o `/admin` en
+   cuanto detectaba la sesión, antes de que la página de cambio de contraseña
+   llegara a renderizar. Corregido excluyendo `/actualizar-clave` de esa regla
+   (necesita sesión para funcionar, no hay que sacar a nadie de ahí).
+3. **Warning de Base UI en consola** (`nativeButton`) en cualquier `<Button
+   render={<Link>...} />` o `render={<a>...} />` (7 usos en el repo): `Button`
+   primitive de Base UI asume `nativeButton=true` por defecto, que exige un
+   `<button>` real cuando se usa `render`. Corregido en el componente compartido
+   `components/ui/button.tsx` (no en cada call site): `nativeButton` ahora
+   por defecto es `!render` — solo se fuerza a `false` cuando el botón se
+   renderiza como link.
+
+Además, a pedido del usuario: nuevo RPC `admin_list_seller_invite_status()`
+(`SECURITY DEFINER`, solo admin/superadmin, lee `auth.users.last_sign_in_at`/
+`invited_at`) y columna "Invitación" (Aceptada/Sin aceptar) en `/admin/vendedores`
+— antes la tabla solo mostraba activo/inactivo, sin distinguir a un vendedor
+invitado que nunca aceptó.
+
+También confirmado en el dashboard del proyecto nuevo: el límite de correos del
+proveedor SMTP incluido de Supabase (sin SMTP propio configurado) es **2 por
+hora** — cubre invitaciones y recuperación de contraseña juntas. Relevante para
+no quedarse sin poder reenviar un correo de prueba durante el E2E; se resuelve
+configurando Resend cuando se retome la infraestructura (Fase 9, diferida).
+
+`tsc --noEmit` y `npm run lint` PASS después de los 3 fixes.
 
 ## Estado general
 

@@ -14,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InviteSellerDialog } from "./invite-seller-dialog";
+import { Button } from "@/components/ui/button";
+import { UserCheck } from "lucide-react";
 
 export const metadata: Metadata = { title: "Vendedores" };
 
@@ -64,7 +66,10 @@ export default async function VendedoresPage({
           <h1 className="text-2xl font-semibold tracking-tight">Vendedores</h1>
           <p className="text-sm text-muted-foreground">Cuentas de tienda que pueden activar garantías.</p>
         </div>
-        <InviteSellerDialog stores={stores ?? []} />
+        <div className="flex gap-2">
+          <Button variant="outline" render={<Link href="/admin/vendedores/pendientes"><UserCheck className="size-4" />Pendientes</Link>} />
+          <InviteSellerDialog stores={stores ?? []} />
+        </div>
       </div>
 
       <form className="flex max-w-lg flex-wrap items-center gap-2">
