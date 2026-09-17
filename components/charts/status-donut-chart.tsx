@@ -1,14 +1,21 @@
 // Encoding de status (no categórico libre): colores reservados, cada uno
 // con su propio significado semántico, nunca reciclados para "serie 4" —
-// ver dataviz skill, "Status colors are reserved". conic-gradient en vez de
-// SVG: un donut de 4 segmentos no justifica una librería ni cálculo de
-// arcos a mano.
+// ver dataviz skill, "Status colors are reserved". SVG con
+// strokeDasharray/strokeDashoffset como atributos (no `style` inline): la
+// CSP de proxy.ts no tiene 'unsafe-inline' en style-src, y un
+// conic-gradient dinámico solo se puede expresar como style="" — con
+// atributos SVG el valor va en el árbol de atributos normal, no bloqueado.
 export type DonutSegment = {
   label: string;
   value: number;
   colorClass: string; // clase de fondo Tailwind, para el punto de la leyenda
-  colorHex: string; // mismo color en hex, para el conic-gradient
+  colorHex: string; // mismo color en hex, para el trazo del arco
 };
+
+const SIZE = 160;
+const STROKE = 20;
+const RADIUS = (SIZE - STROKE) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function StatusDonutChart({
   segments,
@@ -19,33 +26,51 @@ export function StatusDonutChart({
   total: number;
   totalLabel: string;
 }) {
-  let cursor = 0;
-  const stops = segments
-    .map((s) => {
-      const pct = total > 0 ? (s.value / total) * 100 : 0;
-      const start = cursor;
-      cursor += pct;
-      return `${s.colorHex} ${start}% ${cursor}%`;
-    })
-    .join(", ");
+  let cumulative = 0;
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-center">
-      <div
-        className="relative size-44 shrink-0 rounded-full"
-        style={{ background: total > 0 ? `conic-gradient(${stops})` : "#e2e8f0" }}
-      >
-        <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-white text-center">
+    <div className="flex flex-col items-center gap-6">
+      <div className="relative shrink-0">
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90">
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#e2e8f0" strokeWidth={STROKE} />
+          {total > 0
+            ? segments
+                .filter((s) => s.value > 0)
+                .map((s) => {
+                  const length = (s.value / total) * CIRCUMFERENCE;
+                  const gap = CIRCUMFERENCE - length;
+                  const offset = -((cumulative / total) * CIRCUMFERENCE);
+                  cumulative += s.value;
+                  return (
+                    <circle
+                      key={s.label}
+                      cx={SIZE / 2}
+                      cy={SIZE / 2}
+                      r={RADIUS}
+                      fill="none"
+                      stroke={s.colorHex}
+                      strokeWidth={STROKE}
+                      strokeDasharray={`${length} ${gap}`}
+                      strokeDashoffset={offset}
+                      strokeLinecap={segments.filter((x) => x.value > 0).length === 1 ? "butt" : "round"}
+                    >
+                      <title>{`${s.label}: ${((s.value / total) * 100).toFixed(1)}%`}</title>
+                    </circle>
+                  );
+                })
+            : null}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="text-2xl font-semibold tabular-nums">{total.toLocaleString("es")}</span>
           <span className="text-xs text-muted-foreground">{totalLabel}</span>
         </div>
       </div>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex w-full flex-col gap-2">
         {segments.map((s) => (
           <li key={s.label} className="flex items-center gap-2 text-sm">
             <span className={`size-2.5 shrink-0 rounded-full ${s.colorClass}`} />
-            <span className="w-24 text-muted-foreground">{s.label}</span>
-            <span className="font-medium tabular-nums">
+            <span className="flex-1 truncate text-muted-foreground">{s.label}</span>
+            <span className="shrink-0 font-medium tabular-nums">
               {total > 0 ? ((s.value / total) * 100).toFixed(1) : "0.0"}%
             </span>
           </li>
