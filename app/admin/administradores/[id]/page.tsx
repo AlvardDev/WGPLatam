@@ -52,7 +52,7 @@ export default async function AdministradorDetallePage({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            <span className="text-muted-foreground">Invitado el: </span>
+            <span className="text-muted-foreground">Creado el: </span>
             {new Date(admin.created_at).toLocaleDateString()}
           </p>
         </CardContent>

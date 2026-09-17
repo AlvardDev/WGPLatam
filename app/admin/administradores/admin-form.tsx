@@ -7,13 +7,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
-import { inviteAdminSchema, type InviteAdminInput } from "@/lib/validation/admins";
+import { createAdminSchema, type CreateAdminInput } from "@/lib/validation/admins";
 
 export function AdminForm({
   onSubmit,
   onSuccess,
 }: {
-  onSubmit: (values: InviteAdminInput) => Promise<{ error?: string }>;
+  onSubmit: (values: CreateAdminInput) => Promise<{ error?: string }>;
   onSuccess: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -22,18 +22,18 @@ export function AdminForm({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<InviteAdminInput>({
-    resolver: zodResolver(inviteAdminSchema),
-    defaultValues: { email: "", fullName: "" },
+  } = useForm<CreateAdminInput>({
+    resolver: zodResolver(createAdminSchema),
+    defaultValues: { email: "", fullName: "", password: "" },
   });
 
-  const onValid = (values: InviteAdminInput) => {
+  const onValid = (values: CreateAdminInput) => {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Invitación enviada.");
+        toast.success("Administrador creado.");
         onSuccess();
       }
     });
@@ -51,10 +51,15 @@ export function AdminForm({
           <FieldLabel htmlFor="email">Correo</FieldLabel>
           <Input id="email" type="email" {...register("email")} />
           <FieldError errors={[errors.email]} />
-          <FieldDescription>Recibirá un correo para elegir su contraseña.</FieldDescription>
+        </Field>
+        <Field data-invalid={!!errors.password}>
+          <FieldLabel htmlFor="password">Contraseña</FieldLabel>
+          <Input id="password" type="password" autoComplete="new-password" {...register("password")} />
+          <FieldError errors={[errors.password]} />
+          <FieldDescription>Comunícasela tú directamente — no se envía ningún correo.</FieldDescription>
         </Field>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Enviando..." : "Invitar administrador"}
+          {isPending ? "Creando..." : "Crear administrador"}
         </Button>
       </FieldGroup>
     </form>

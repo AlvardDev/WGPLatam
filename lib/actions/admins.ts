@@ -1,20 +1,14 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSuperadmin } from "@/lib/auth/require-superadmin";
-import { inviteAdminSchema, type InviteAdminInput } from "@/lib/validation/admins";
+import { createAdminSchema, type CreateAdminInput } from "@/lib/validation/admins";
 
 // Mismo patrón que lib/actions/sellers.ts (Fase 4), con superadmin en vez de
-// admin como quien invita, y sin store_id.
+// admin como quien da de alta, y sin store_id.
 const PERMANENT_BAN = "876000h";
-
-async function origin() {
-  const h = await headers();
-  return h.get("origin") ?? `https://${h.get("host")}`;
-}
 
 function friendlyAdminError(message: string): string {
   if (message.includes("already provisioned")) return "Este usuario ya tiene un rol asignado.";
@@ -28,35 +22,34 @@ function friendlyAdminError(message: string): string {
   return "No se pudo completar la operación.";
 }
 
-export async function inviteAdmin(
-  input: InviteAdminInput,
+/**
+ * Crea la cuenta admin con la contraseña que eligió el superadmin — sin
+ * correo de invitación (bloqueado por el límite de 2/hora del SMTP de
+ * Supabase sin dominio propio). El superadmin comunica correo/contraseña
+ * al admin por fuera, igual que resolvePasswordReset en
+ * /admin/vendedores/pendientes.
+ */
+export async function createAdmin(
+  input: CreateAdminInput,
 ): Promise<{ error?: string; id?: string }> {
   const superadmin = await requireSuperadmin();
-  if (!superadmin) return { error: "No tienes permiso para invitar administradores." };
+  if (!superadmin) return { error: "No tienes permiso para crear administradores." };
 
-  const parsed = inviteAdminSchema.safeParse(input);
+  const parsed = createAdminSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  const { email, fullName } = parsed.data;
+  const { email, fullName, password } = parsed.data;
 
   const adminClient = createAdminClient();
-  const redirectTo = `${await origin()}/auth/callback?next=/actualizar-clave`;
-
-  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
-    redirectTo,
-  });
-  if (inviteError || !invited.user) {
-    return { error: friendlyAdminError(inviteError?.message ?? "") };
-  }
-  const userId = invited.user.id;
-
-  const { error: metadataError } = await adminClient.auth.admin.updateUserById(userId, {
+  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
     app_metadata: { role: "admin", full_name: fullName },
   });
-  if (metadataError) {
-    await adminClient.auth.admin.deleteUser(userId).catch(() => {});
-    return { error: "No se pudo completar la invitación. Intenta de nuevo." };
+  if (createError || !created.user) {
+    return { error: friendlyAdminError(createError?.message ?? "") };
   }
+  const userId = created.user.id;
 
   const supabase = await createClient();
   const { error: finalizeError } = await supabase.rpc("admin_finalize_admin_profile", {
