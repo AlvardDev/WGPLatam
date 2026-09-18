@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { NavItem } from "@/components/layout/nav-items";
 
 export type OnboardingStep = {
+  href: string;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -29,6 +30,7 @@ export function buildOnboardingSteps(navItems: NavItem[]): OnboardingStep[] {
   return navItems
     .filter((item) => item.href in SECTION_DESCRIPTIONS)
     .map((item) => ({
+      href: item.href,
       title: item.label,
       description: SECTION_DESCRIPTIONS[item.href],
       icon: item.icon,

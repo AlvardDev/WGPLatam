@@ -7,13 +7,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { adminNav, superadminNav } from "@/components/layout/nav-items";
 import { completeOnboarding } from "@/lib/actions/onboarding";
-import { buildOnboardingSteps, type OnboardingStep } from "./onboarding-steps";
+import { buildOnboardingSteps } from "./onboarding-steps";
+import { OnboardingSpotlight } from "./onboarding-spotlight";
 
-const WELCOME_STEP: OnboardingStep = {
-  title: "Bienvenido al Sistema de Garantías",
-  description: "Un recorrido rápido por las secciones principales antes de empezar. Toma menos de un minuto.",
-  icon: ShieldCheck,
-};
+// "welcome"/"thankyou": diálogo centrado. "spotlight": recorrido señalando
+// el sidebar real (solo desktop, ver startTour). "textSteps": mismo
+// contenido que spotlight pero como pasos de diálogo — fallback para mobile,
+// donde el sidebar vive en un Sheet cerrado (no hay nada que señalar).
+type Phase = "closed" | "welcome" | "spotlight" | "textSteps" | "thankyou";
 
 type OnboardingContextValue = { replay: () => void };
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -28,8 +29,7 @@ export function useOnboardingTour(): OnboardingContextValue {
 /**
  * Envuelve todo el área admin (ver AdminShell) para que el tour pueda
  * dispararse tanto automático (primer login, `autoShow`) como desde
- * cualquier página hija vía useOnboardingTour().replay() — sin eso, el botón
- * de Ajustes no tendría forma de abrir un modal que vive en el layout.
+ * cualquier página hija vía useOnboardingTour().replay().
  */
 export function OnboardingProvider({
   role,
@@ -41,49 +41,89 @@ export function OnboardingProvider({
   children: React.ReactNode;
 }) {
   const steps = useMemo(
-    () => [WELCOME_STEP, ...buildOnboardingSteps(role === "superadmin" ? superadminNav : adminNav)],
+    () => buildOnboardingSteps(role === "superadmin" ? superadminNav : adminNav),
     [role],
   );
-  const [open, setOpen] = useState(autoShow);
+  const [phase, setPhase] = useState<Phase>(autoShow ? "welcome" : "closed");
   const [stepIndex, setStepIndex] = useState(0);
   // Evita reintentar la RPC en cada cierre de una sesión de replay: solo
   // hace falta re-marcar la primera vez que se cierra tras abrirse.
   const markedRef = useRef(false);
   const [, startTransition] = useTransition();
 
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next && !markedRef.current) {
-      markedRef.current = true;
-      startTransition(() => {
-        void completeOnboarding();
-      });
-    }
+  const markComplete = () => {
+    if (markedRef.current) return;
+    markedRef.current = true;
+    startTransition(() => {
+      void completeOnboarding();
+    });
+  };
+
+  const finish = () => {
+    setPhase("closed");
+    markComplete();
   };
 
   const replay = () => {
     markedRef.current = false;
     setStepIndex(0);
-    setOpen(true);
+    setPhase("welcome");
   };
 
-  const isThankYou = stepIndex === steps.length;
-  const current = steps[stepIndex];
-  const goNext = () => setStepIndex((i) => Math.min(i + 1, steps.length));
+  const startTour = () => {
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    setStepIndex(0);
+    setPhase(isDesktop ? "spotlight" : "textSteps");
+  };
+
+  const goNext = () => {
+    if (stepIndex >= steps.length - 1) {
+      setPhase("thankyou");
+      return;
+    }
+    setStepIndex((i) => i + 1);
+  };
   const goBack = () => setStepIndex((i) => Math.max(i - 1, 0));
+
+  const current = steps[stepIndex];
 
   return (
     <OnboardingContext.Provider value={{ replay }}>
       {children}
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+
+      <Dialog open={phase === "welcome" || phase === "thankyou"} onOpenChange={(next) => !next && finish()}>
         <DialogContent
-          showCloseButton={!isThankYou}
+          showCloseButton={phase !== "thankyou"}
           className={cn(
-            isThankYou &&
+            phase === "thankyou" &&
               "border-none bg-gradient-to-br from-[#04070f] via-[#0a1128] to-[#0f2050] p-8 text-white",
           )}
         >
-          {isThankYou ? (
+          {phase === "welcome" ? (
+            <div className="flex flex-col items-center gap-4 py-2 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <ShieldCheck className="size-7" />
+              </span>
+              <div className="space-y-1.5">
+                <p className="font-heading text-lg font-semibold">Bienvenido al Sistema de Garantías</p>
+                <p className="text-sm text-muted-foreground">
+                  Te mostramos rápido dónde está cada cosa antes de empezar. Toma menos de un minuto.
+                </p>
+              </div>
+              <Button className="w-full bg-blue-600 text-white hover:bg-blue-700" onClick={startTour}>
+                Comenzar recorrido
+              </Button>
+              <button
+                type="button"
+                onClick={finish}
+                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Saltar tutorial
+              </button>
+            </div>
+          ) : null}
+
+          {phase === "thankyou" ? (
             <div className="flex flex-col items-center gap-4 py-4 text-center duration-300 animate-in fade-in zoom-in-95">
               <span className="flex size-14 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10">
                 <ShieldCheck className="size-7 text-blue-400" />
@@ -96,15 +136,21 @@ export function OnboardingProvider({
                   Tu cuenta ya está lista. Puedes repetir este tutorial cuando quieras desde Ajustes.
                 </p>
               </div>
-              <Button
-                className="mt-2 w-full bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => handleOpenChange(false)}
-              >
+              <Button className="mt-2 w-full bg-blue-600 text-white hover:bg-blue-700" onClick={finish}>
                 Empezar a usar el sistema
               </Button>
             </div>
-          ) : (
-            <div key={stepIndex} className="flex flex-col gap-4 py-1 duration-200 animate-in fade-in slide-in-from-bottom-1">
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={phase === "textSteps"} onOpenChange={(next) => !next && finish()}>
+        <DialogContent>
+          {current ? (
+            <div
+              key={stepIndex}
+              className="flex flex-col gap-4 py-1 duration-200 animate-in fade-in slide-in-from-bottom-1"
+            >
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                   <current.icon className="size-5" />
@@ -146,9 +192,21 @@ export function OnboardingProvider({
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
+
+      {phase === "spotlight" && current ? (
+        <OnboardingSpotlight
+          key={current.href}
+          step={current}
+          stepIndex={stepIndex}
+          stepCount={steps.length}
+          onNext={goNext}
+          onBack={goBack}
+          onSkip={finish}
+        />
+      ) : null}
     </OnboardingContext.Provider>
   );
 }
