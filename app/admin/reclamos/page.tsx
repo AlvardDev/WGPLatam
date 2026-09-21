@@ -59,6 +59,7 @@ export default async function ReclamosPage() {
         <p className="text-sm text-muted-foreground">Últimos 100 reclamos, de todas las tiendas.</p>
       </div>
 
+      <div data-onboarding-target="claims-list">
       {!claims || claims.length === 0 ? (
         <EmptyState icon={AlertTriangle} title="Todavía no hay reclamos abiertos" />
       ) : (
@@ -103,6 +104,7 @@ export default async function ReclamosPage() {
           </Table>
         </div>
       )}
+      </div>
     </div>
   );
 }

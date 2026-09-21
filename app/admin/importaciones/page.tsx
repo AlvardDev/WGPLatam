@@ -55,7 +55,10 @@ export default async function ImportacionesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-blue-900">Importaciones</h1>
           <p className="text-sm text-muted-foreground">Carga masiva de seriales por archivo CSV o Excel.</p>
         </div>
-        <Button render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>} />
+        <Button
+          data-onboarding-target="new-import"
+          render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>}
+        />
       </div>
 
       {!data || data.length === 0 ? (

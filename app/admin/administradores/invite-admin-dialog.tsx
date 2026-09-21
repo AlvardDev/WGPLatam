@@ -22,7 +22,7 @@ export function InviteAdminDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button>
+          <Button data-onboarding-target="invite-admin">
             <UserPlus className="size-4" />
             Crear administrador
           </Button>

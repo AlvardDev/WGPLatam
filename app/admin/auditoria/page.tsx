@@ -106,7 +106,7 @@ export default async function AuditoriaPage({
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3">
+      <form className="flex flex-wrap items-end gap-3" data-onboarding-target="audit-list">
         <select
           name="accion"
           defaultValue={accion ?? ""}

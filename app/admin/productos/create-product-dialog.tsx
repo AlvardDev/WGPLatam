@@ -22,7 +22,7 @@ export function CreateProductDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button>
+          <Button data-onboarding-target="create-product">
             <Plus className="size-4" />
             Crear producto
           </Button>

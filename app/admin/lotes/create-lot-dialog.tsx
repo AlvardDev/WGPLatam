@@ -22,7 +22,7 @@ export function CreateLotDialog({ products }: { products: { id: string; code: st
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button disabled={products.length === 0}>
+          <Button disabled={products.length === 0} data-onboarding-target="create-lot">
             <Plus className="size-4" />
             Crear lote
           </Button>

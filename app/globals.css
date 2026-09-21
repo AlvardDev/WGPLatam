@@ -156,3 +156,12 @@
     transform: translateX(4px);
   }
 }
+
+/* Sidebar del panel admin (AdminShell): scrolleable sin mostrar la barra. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

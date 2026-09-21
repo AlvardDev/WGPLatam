@@ -50,6 +50,7 @@ export default async function GarantiasPage() {
         <p className="text-sm text-muted-foreground">Últimas 100 activaciones, de todas las tiendas.</p>
       </div>
 
+      <div data-onboarding-target="warranties-list">
       {!warranties || warranties.length === 0 ? (
         <EmptyState icon={ShieldCheck} title="Todavía no hay garantías activadas" />
       ) : (
@@ -95,6 +96,7 @@ export default async function GarantiasPage() {
           </Table>
         </div>
       )}
+      </div>
     </div>
   );
 }

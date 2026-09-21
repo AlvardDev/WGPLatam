@@ -22,7 +22,7 @@ export function CreateStoreDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button>
+          <Button data-onboarding-target="create-store">
             <Plus className="size-4" />
             Crear tienda
           </Button>

@@ -24,7 +24,11 @@ export function InviteSellerDialog({ stores }: { stores: Store[] }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button disabled={stores.length === 0} title={stores.length === 0 ? "Crea una tienda primero" : undefined}>
+          <Button
+            disabled={stores.length === 0}
+            title={stores.length === 0 ? "Crea una tienda primero" : undefined}
+            data-onboarding-target="invite-seller"
+          >
             <UserPlus className="size-4" />
             Invitar vendedor
           </Button>

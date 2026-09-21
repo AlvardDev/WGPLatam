@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useMemo, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { cn } from "cn";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -10,11 +11,16 @@ import { completeOnboarding } from "@/lib/actions/onboarding";
 import { buildOnboardingSteps } from "./onboarding-steps";
 import { OnboardingSpotlight } from "./onboarding-spotlight";
 
-// "welcome"/"thankyou": diálogo centrado. "spotlight": recorrido señalando
-// el sidebar real (solo desktop, ver startTour). "textSteps": mismo
-// contenido que spotlight pero como pasos de diálogo — fallback para mobile,
-// donde el sidebar vive en un Sheet cerrado (no hay nada que señalar).
+// "welcome"/"thankyou": diálogo centrado. "spotlight": recorrido que navega
+// a cada módulo real y señala el sidebar y luego (si aplica) el botón o
+// zona clave de esa pantalla (solo desktop, ver startTour). "textSteps":
+// mismo contenido que spotlight pero como pasos de diálogo — fallback para
+// mobile, donde el sidebar vive en un Sheet cerrado (no hay nada que
+// señalar ni sentido en navegar detrás de un modal a pantalla completa).
 type Phase = "closed" | "welcome" | "spotlight" | "textSteps" | "thankyou";
+// Dentro de "spotlight": primero el link del sidebar ("nav"), luego —si el
+// paso tiene pageTarget— el elemento real de la página ("page").
+type SubPhase = "nav" | "page";
 
 type OnboardingContextValue = { replay: () => void };
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -46,10 +52,13 @@ export function OnboardingProvider({
   );
   const [phase, setPhase] = useState<Phase>(autoShow ? "welcome" : "closed");
   const [stepIndex, setStepIndex] = useState(0);
+  const [subPhase, setSubPhase] = useState<SubPhase>("nav");
   // Evita reintentar la RPC en cada cierre de una sesión de replay: solo
   // hace falta re-marcar la primera vez que se cierra tras abrirse.
   const markedRef = useRef(false);
   const [, startTransition] = useTransition();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const markComplete = () => {
     if (markedRef.current) return;
@@ -67,25 +76,52 @@ export function OnboardingProvider({
   const replay = () => {
     markedRef.current = false;
     setStepIndex(0);
+    setSubPhase("nav");
     setPhase("welcome");
   };
 
   const startTour = () => {
     const isDesktop = window.matchMedia("(min-width: 768px)").matches;
     setStepIndex(0);
+    setSubPhase("nav");
     setPhase(isDesktop ? "spotlight" : "textSteps");
   };
 
+  const current = steps[stepIndex];
+
+  // Cada vez que el recorrido apunta al sidebar de un paso nuevo, navega de
+  // verdad a esa página — antes solo se señalaba el link sin moverse de la
+  // pantalla actual.
+  useEffect(() => {
+    if (phase !== "spotlight" || subPhase !== "nav" || !current) return;
+    if (pathname !== current.href) router.push(current.href);
+  }, [phase, subPhase, stepIndex]);
+
+  const isLastSubstep = stepIndex >= steps.length - 1 && (subPhase === "page" || !current?.pageTarget);
+
   const goNext = () => {
-    if (stepIndex >= steps.length - 1) {
+    if (phase === "spotlight" && subPhase === "nav" && current?.pageTarget) {
+      setSubPhase("page");
+      return;
+    }
+    if (isLastSubstep) {
       setPhase("thankyou");
       return;
     }
     setStepIndex((i) => i + 1);
+    setSubPhase("nav");
   };
-  const goBack = () => setStepIndex((i) => Math.max(i - 1, 0));
 
-  const current = steps[stepIndex];
+  const goBack = () => {
+    if (phase === "spotlight" && subPhase === "page") {
+      setSubPhase("nav");
+      return;
+    }
+    setStepIndex((i) => Math.max(i - 1, 0));
+    setSubPhase("nav");
+  };
+
+  const canGoBack = !(stepIndex === 0 && subPhase === "nav");
 
   return (
     <OnboardingContext.Provider value={{ replay }}>
@@ -196,17 +232,28 @@ export function OnboardingProvider({
         </DialogContent>
       </Dialog>
 
-      {phase === "spotlight" && current ? (
-        <OnboardingSpotlight
-          key={current.href}
-          step={current}
-          stepIndex={stepIndex}
-          stepCount={steps.length}
-          onNext={goNext}
-          onBack={goBack}
-          onSkip={finish}
-        />
-      ) : null}
+      {phase === "spotlight" && current
+        ? (() => {
+            const onPage = subPhase === "page" && current.pageTarget;
+            const progressLabel = `Paso ${stepIndex + 1} de ${steps.length}${onPage ? " · Cómo usarlo" : ""}`;
+            return (
+              <OnboardingSpotlight
+                key={`${current.href}-${subPhase}`}
+                selector={onPage ? current.pageTarget!.selector : `[data-onboarding-nav="${current.href}"]`}
+                title={current.title}
+                description={onPage ? current.pageTarget!.description : current.description}
+                icon={current.icon}
+                progressLabel={progressLabel}
+                canGoBack={canGoBack}
+                nextLabel={isLastSubstep ? "Finalizar" : "Siguiente"}
+                onNext={goNext}
+                onBack={goBack}
+                onSkip={finish}
+                onTargetMissing={goNext}
+              />
+            );
+          })()
+        : null}
     </OnboardingContext.Provider>
   );
 }
