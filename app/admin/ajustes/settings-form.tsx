@@ -14,7 +14,7 @@ import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field
 const SECTIONS: {
   title: string;
   description: string;
-  fields: { name: keyof AppSettingsInput; label: string; type?: string; textarea?: boolean }[];
+  fields: { name: keyof AppSettingsInput; label: string; type?: string; textarea?: boolean; short?: boolean }[];
 }[] = [
   {
     title: "Empresa",
@@ -33,9 +33,9 @@ const SECTIONS: {
     title: "Garantías",
     description: "Valores de partida al crear un producto nuevo (no afectan garantías ya activadas).",
     fields: [
-      { name: "defaultWarrantyDays", label: "Duración por defecto (días)", type: "number" },
-      { name: "storeAttentionDays", label: "Días de atención de tienda", type: "number" },
-      { name: "expiringSoonDays", label: "Días para alerta de vencimiento", type: "number" },
+      { name: "defaultWarrantyDays", label: "Duración por defecto (días)", type: "number", short: true },
+      { name: "storeAttentionDays", label: "Días de atención de tienda", type: "number", short: true },
+      { name: "expiringSoonDays", label: "Días para alerta de vencimiento", type: "number", short: true },
       { name: "defaultWarrantyConditions", label: "Condiciones por defecto", textarea: true },
       {
         name: "defaultWarrantyExclusions",
@@ -48,9 +48,9 @@ const SECTIONS: {
     title: "Sistema",
     description: "Valores regionales por defecto.",
     fields: [
-      { name: "countryCode", label: "País" },
+      { name: "countryCode", label: "País", short: true },
       { name: "defaultTimezone", label: "Zona horaria por defecto" },
-      { name: "locale", label: "Configuración regional" },
+      { name: "locale", label: "Configuración regional", short: true },
       { name: "nationalIdLabel", label: "Etiqueta del documento de identidad" },
     ],
   },
@@ -105,6 +105,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: AppSettingsInpu
                     <Input
                       id={f.name}
                       type={f.type ?? "text"}
+                      className={f.short ? "max-w-28" : undefined}
                       {...register(f.name, f.type === "number" ? { valueAsNumber: true } : {})}
                     />
                   )}
