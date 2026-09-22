@@ -18,7 +18,7 @@ const APP_VERSION = "v0.1.0";
 function SidebarBrand() {
   return (
     <div className="flex h-16 items-center gap-2 px-5">
-      <Image src="/wgp-logo.svg" alt="WGP" width={2095} height={669} className="h-6 w-auto" priority />
+      <Image src="/wgp-logo.png" alt="WGP" width={1572} height={1001} className="h-6 w-auto" priority />
     </div>
   );
 }

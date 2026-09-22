@@ -23,7 +23,7 @@ export function BrandPanel() {
       />
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        <Image src="/wgp-logo.svg" alt="WGP" width={2095} height={669} className="w-64 max-w-full" priority />
+        <Image src="/wgp-logo.png" alt="WGP" width={1572} height={1001} className="w-64 max-w-full" priority />
         <p className="text-xs font-semibold tracking-[0.35em] text-slate-300">
           GARANTÍAS · PRODUCTOS · CONFIANZA
         </p>
