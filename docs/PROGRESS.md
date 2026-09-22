@@ -2,6 +2,34 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Ajustes: campos cortos ya no se estiran a todo el ancho (2026-09-22)
+
+Los campos numéricos de máximo 4 dígitos (duración por defecto, días de atención de tienda, días
+de alerta de vencimiento) y los códigos cortos (país, configuración regional) en
+`/admin/ajustes` se estiraban hasta el borde de la pantalla sin necesidad. `settings-form.tsx`
+gana un flag `short` por campo que les pone un ancho máximo (`max-w-28`); el resto de los campos
+(nombre, dirección, correos, etc.) sigue a ancho completo, que sí tiene sentido para ellos.
+
+## Favicon y logo reemplazados (2026-09-22)
+
+`app/icon.png` (pestaña del navegador) y `public/wgp-logo.png` (logo del sidebar admin y del panel
+de login, reemplaza el `.svg` anterior) actualizados con el arte nuevo del cliente. El logo nuevo
+es un PNG con transparencia real (verificado a nivel de píxel, no queda una caja blanca sobre el
+fondo oscuro del sidebar/login) y tiene una proporción distinta al anterior — se actualizó el
+`width`/`height` en los dos componentes que lo usan (`admin-shell.tsx`, `brand-panel.tsx`) para
+que `next/image` no lo deforme.
+
+## Sidebar fijo + tour de onboarding navega de verdad (2026-09-21)
+
+Tres pedidos del cliente sobre el panel admin: (1) el sidebar se alargaba con el contenido de la
+página en vez de quedarse fijo — ahora es `sticky`/altura completa en desktop, con scroll interno
+sin barra visible (`.no-scrollbar` en `globals.css`); (2) el tour de bienvenida no bloqueaba el
+scroll de fondo durante la parte "spotlight" de escritorio — arreglado; (3) cada paso del tour
+solo señalaba el link del sidebar sin llevarte a la página — ahora navega de verdad a cada módulo
+y, cuando aplica, señala también el botón/zona clave de esa pantalla (crear producto, invitar
+vendedor, etc.), no solo el nombre en el sidebar. Ver `components/admin/onboarding/` y
+`components/admin/admin-shell.tsx`.
+
 ## Código de barras opcional al crear/importar seriales (2026-09-21)
 
 Pedido del cliente: poder cargar seriales que todavía no tienen código de barras (incluyendo un
