@@ -14,6 +14,7 @@ import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/c
 import {
   lookupSerialAction,
   activateWarrantyAction,
+  requestBarcodeWaiverAction,
   type SerialLookupResult,
   type ActivateWarrantyResult,
 } from "@/lib/actions/warranties";
@@ -97,8 +98,22 @@ export function ActivationFlow() {
   const [lookup, setLookup] = useState<SerialLookupResult | null>(null);
   const [activated, setActivated] = useState<ActivateWarrantyResult | null>(null);
   const [isSearching, startSearch] = useTransition();
+  const [isRequestingWaiver, startWaiverRequest] = useTransition();
   const [showScanner, setShowScanner] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const requestWaiver = () => {
+    if (!lookup) return;
+    startWaiverRequest(async () => {
+      const { error } = await requestBarcodeWaiverAction(lookup.serial_id);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success("Solicitud enviada al administrador.");
+      search(code);
+    });
+  };
 
   const search = (raw: string) => {
     const value = raw.trim();
@@ -237,11 +252,38 @@ export function ActivationFlow() {
               Garantía de {lookup.warranty_duration_days} días desde la activación.
             </p>
 
-            {lookup.status === "AVAILABLE" && (
+            {lookup.status === "AVAILABLE" && (lookup.barcode || lookup.barcode_waiver_status === "APPROVED") && (
               <Button onClick={() => setPhase("confirming")} className="w-full">
                 Activar garantía
               </Button>
             )}
+            {lookup.status === "AVAILABLE" && !lookup.barcode && lookup.barcode_waiver_status === "PENDING" && (
+              <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                <ShieldAlert className="size-4" />
+                Este serial no tiene código de barras. Ya le avisamos al administrador — esperando su autorización
+                para activarlo.
+              </div>
+            )}
+            {lookup.status === "AVAILABLE" &&
+              !lookup.barcode &&
+              (lookup.barcode_waiver_status === null || lookup.barcode_waiver_status === "REJECTED") && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                    <ShieldAlert className="size-4 text-destructive" />
+                    {lookup.barcode_waiver_status === "REJECTED"
+                      ? `El administrador rechazó la autorización${lookup.barcode_waiver_note ? `: ${lookup.barcode_waiver_note}` : "."}`
+                      : "Este serial todavía no tiene código de barras asignado."}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={requestWaiver}
+                    disabled={isRequestingWaiver}
+                  >
+                    {isRequestingWaiver ? "Enviando..." : "Solicitar autorización al administrador"}
+                  </Button>
+                </div>
+              )}
             {lookup.status === "ACTIVATED" && (
               <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
                 <ShieldAlert className="size-4 text-destructive" />

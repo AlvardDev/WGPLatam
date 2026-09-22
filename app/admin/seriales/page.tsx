@@ -17,7 +17,7 @@ const PAGE_SIZE = 50;
 type SerialQueryRow = {
   id: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   status: string;
   created_at: string;
   product_id: string;
@@ -46,10 +46,11 @@ export default async function SerialesPage({
     producto?: string;
     lote?: string;
     status?: string;
+    barcode?: string;
     cursor?: string;
   }>;
 }) {
-  const { q, producto, lote, status, cursor } = await searchParams;
+  const { q, producto, lote, status, barcode, cursor } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: products }, { data: lots }, { count: totalSeriales }, { count: disponibles }, { count: activos }, { count: bloqueados }] =
@@ -78,6 +79,17 @@ export default async function SerialesPage({
   if (producto) query = query.eq("product_id", producto);
   if (lote) query = query.eq("lot_id", lote);
   if (status) query = query.eq("status", status);
+  if (barcode === "falta") query = query.is("barcode", null);
+  if (barcode === "pendiente") {
+    const { data: pending } = await supabase
+      .from("serial_barcode_waivers")
+      .select("serial_id")
+      .eq("status", "PENDING");
+    const pendingIds = (pending ?? []).map((w) => w.serial_id);
+    // .in() con array vacío es ambiguo entre versiones de PostgREST — un id
+    // imposible da el mismo resultado (cero filas) sin ese riesgo.
+    query = query.in("id", pendingIds.length > 0 ? pendingIds : ["00000000-0000-0000-0000-000000000000"]);
+  }
   if (cursor) {
     const [cCreatedAt, cId] = cursor.split("|");
     if (cCreatedAt && cId) {
@@ -109,6 +121,7 @@ export default async function SerialesPage({
   if (producto) nextParams.set("producto", producto);
   if (lote) nextParams.set("lote", lote);
   if (status) nextParams.set("status", status);
+  if (barcode) nextParams.set("barcode", barcode);
   if (nextCursor) nextParams.set("cursor", nextCursor);
 
   const filteredLots = producto ? (lots ?? []).filter((l) => l.product_id === producto) : (lots ?? []);
@@ -175,10 +188,19 @@ export default async function SerialesPage({
           <option value="BLOCKED">Bloqueado</option>
           <option value="VOID">Anulado</option>
         </select>
+        <select
+          name="barcode"
+          defaultValue={barcode ?? ""}
+          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="">Con o sin código de barras</option>
+          <option value="falta">Sin código de barras</option>
+          <option value="pendiente">Con autorización pendiente</option>
+        </select>
         <Button type="submit" variant="outline">
           Filtrar
         </Button>
-        {(q || producto || lote || status) && (
+        {(q || producto || lote || status || barcode) && (
           <Button variant="ghost" render={<Link href="/admin/seriales">Limpiar filtros</Link>} />
         )}
       </form>

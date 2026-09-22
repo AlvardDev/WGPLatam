@@ -182,6 +182,16 @@ El requisito real no es una cifra de tiempo, es: **procesar grandes volúmenes d
 
 Restricciones técnicas de fondo: `statement_timeout` de 8 s para `authenticated`, límites de tamaño de body en funciones serverless, 2 s de CPU en Edge Functions. Por eso todo el procesamiento masivo pasa por RPC en bloques, nunca por una sola llamada. CSV se recomienda por encima de ~200k filas por el consumo de memoria de Excel en el navegador (tope exacto a medir).
 
+### Código de barras opcional (2026-09-21)
+
+`serials.barcode` (y `serial_import_rows.barcode`) pasaron de `NOT NULL` a nullable: se puede crear o importar un serial solo con su número de serie — incluyendo un `.txt` con un serial por línea, sin encabezado ni segunda columna — y completar el código de barras después con la RPC `set_serial_barcode` (solo mientras el serial está `AVAILABLE`). `serial_imports.missing_barcode_rows` congela cuántos seriales de esa importación quedaron sin barcode, para poder mostrarlo después de purgar el staging.
+
+Activar una garantía sobre un serial sin barcode **no está prohibido**, pero exige autorización explícita de un admin — no es que el vendedor pueda saltárselo libremente. Tabla nueva `serial_barcode_waivers` (mismo shape que `warranty_corrections`: `status` `PENDING`/`APPROVED`/`REJECTED`, `requested_by`, `decided_by/at`, `decision_note`, historial completo — una fila por solicitud, RLS admin ve todo / vendedor solo las de su tienda). RPC `request_barcode_waiver` (vendedor, máximo una `PENDING` por serial) y `decide_barcode_waiver` (admin). `activate_warranty` deja pasar la activación sin barcode solo si existe una fila `APPROVED` para ese serial; si no, rechaza con `serial has no barcode assigned; request admin authorization`. `lookup_serial` expone `barcode_waiver_status`/`barcode_waiver_note` (de la solicitud más reciente) para que la pantalla de activación del vendedor pueda mostrar "solicitar autorización" / "esperando al admin" / "rechazada: motivo" antes de que falle `activate_warranty`.
+
+`warranties.barcode` pasa a nullable también: una garantía activada así queda con ese snapshot en `null`, a propósito — la búsqueda sin ambigüedad "por serial o por barcode" (`lookup_serial`) sigue intacta porque nunca se busca por un barcode que no existe.
+
+Gracias a cómo Postgres compara `NULL` (nunca es verdadero en `=`), toda la detección de colisión/duplicados existente (`private.check_serial_collision`, los joins de `stage_import_rows`/`commit_import_batch`) siguió funcionando sin cambios — el único ajuste real de clasificación fue dejar de tratar "falta barcode" como `ERROR` en la importación.
+
 ## Índices previstos
 
 - Únicos: `serials(serial)`, `serials(barcode)`, `warranties(serial_id)`, `stores(code)`, `products(code)`, `lots(product_id, code)`.

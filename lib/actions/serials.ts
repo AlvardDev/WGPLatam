@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createSerialSchema, serialReasonSchema, type CreateSerialInput } from "@/lib/validation/serials";
+import {
+  createSerialSchema,
+  serialReasonSchema,
+  setBarcodeSchema,
+  type CreateSerialInput,
+} from "@/lib/validation/serials";
 
 // Traduce los mensajes de las RPC (ver supabase/migrations/*_serials_rpc.sql)
 // a algo que un admin pueda leer sin conocer la implementación.
@@ -13,6 +18,8 @@ function friendlySerialError(message: string): string {
   if (message.includes("not active")) return "El lote seleccionado está inactivo.";
   if (message.includes("lot not found")) return "El lote no existe.";
   if (message.includes("invalid transition")) return "Ese serial no puede pasar a ese estado desde el estado actual.";
+  if (message.includes("invalid state")) return "El serial ya no está disponible para completar su código de barras.";
+  if (message.includes("must not be empty")) return "El código de barras no puede estar vacío.";
   if (message.includes("reason is required")) return "El motivo es obligatorio.";
   if (message.includes("serial not found")) return "El serial no existe.";
   return "No se pudo completar la operación.";
@@ -30,12 +37,29 @@ export async function createSerialAction(
     p_product_id: v.productId,
     p_lot_id: v.lotId,
     p_serial: v.serial,
-    p_barcode: v.barcode,
+    p_barcode: v.barcode || null,
   });
 
   if (error) return { error: friendlySerialError(error.message) };
   revalidatePath("/admin/seriales");
   return { id: data as string };
+}
+
+export async function setSerialBarcodeAction(
+  id: string,
+  barcode: string,
+): Promise<{ error?: string; success?: boolean }> {
+  const parsed = setBarcodeSchema.safeParse({ barcode });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_serial_barcode", {
+    p_serial_id: id,
+    p_barcode: parsed.data.barcode,
+  });
+  if (error) return { error: friendlySerialError(error.message) };
+  revalidatePath("/admin/seriales");
+  return { success: true };
 }
 
 export async function blockSerialAction(

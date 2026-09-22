@@ -18,7 +18,7 @@ const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = 
 type SerialDetailRow = {
   id: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   status: string;
   status_reason: string | null;
   created_at: string;
@@ -42,6 +42,13 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
 
   if (error || !serial) notFound();
 
+  const { data: pendingWaiver } = await supabase
+    .from("serial_barcode_waivers")
+    .select("id")
+    .eq("serial_id", id)
+    .eq("status", "PENDING")
+    .maybeSingle();
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -49,7 +56,12 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
           <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900">{serial.serial}</h1>
           <Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{serial.status}</Badge>
         </div>
-        <SerialActions id={serial.id} status={serial.status} />
+        <SerialActions
+          id={serial.id}
+          status={serial.status}
+          barcode={serial.barcode}
+          pendingWaiverId={pendingWaiver?.id ?? null}
+        />
       </div>
 
       <Card>
@@ -59,7 +71,7 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div>
             <p className="text-sm text-muted-foreground">Código de barras</p>
-            <p className="font-mono text-sm">{serial.barcode}</p>
+            <p className="font-mono text-sm">{serial.barcode ?? "—"}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Producto</p>

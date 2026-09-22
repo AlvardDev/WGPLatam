@@ -184,15 +184,18 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
           Lote: <span className="font-medium text-foreground">{selectedLot?.products?.name} — {selectedLot?.code}</span>
         </p>
         <Field>
-          <FieldLabel htmlFor="file">Archivo (.csv o .xlsx)</FieldLabel>
+          <FieldLabel htmlFor="file">Archivo (.csv, .xlsx o .txt)</FieldLabel>
           <input
             id="file"
             type="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv,.xlsx,.xls,.txt"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="text-sm"
           />
-          <FieldDescription>Debe tener columnas &quot;serial&quot; y &quot;codigo_barras&quot;.</FieldDescription>
+          <FieldDescription>
+            .csv/.xlsx: columna &quot;serial&quot; obligatoria, &quot;codigo_barras&quot; opcional. .txt: un serial por
+            línea, sin código de barras — se completa después.
+          </FieldDescription>
         </Field>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => setStep("lote")} disabled={busy}>
@@ -218,7 +221,7 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
   if (step === "previa" && counts) {
     return (
       <div className="max-w-2xl space-y-6">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div className="rounded-lg border p-4">
             <div className="text-2xl font-semibold">{counts.total}</div>
             <div className="text-sm text-muted-foreground">Total</div>
@@ -234,6 +237,10 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
           <div className="rounded-lg border p-4">
             <div className="text-2xl font-semibold text-destructive">{counts.error}</div>
             <div className="text-sm text-muted-foreground">Con error</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-2xl font-semibold text-amber-600">{counts.missingBarcode}</div>
+            <div className="text-sm text-muted-foreground">Sin código de barras</div>
           </div>
         </div>
 
@@ -313,6 +320,12 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
           )}
           .
         </p>
+        {counts && counts.missingBarcode > 0 && (
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+            {counts.missingBarcode} de esos seriales quedaron sin código de barras. Podés completarlo después desde
+            Seriales.
+          </p>
+        )}
         <Button type="button" onClick={() => router.push(`/admin/importaciones/${importId}`)}>
           Ver detalle
         </Button>

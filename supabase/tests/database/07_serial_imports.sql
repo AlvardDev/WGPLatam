@@ -8,7 +8,7 @@
 -- (reintentos idempotentes, ver abajo) y con un script Node aparte con dos
 -- conexiones reales en paralelo (ver docs/PHASE-3-REVIEW.md, "Concurrencia").
 begin;
-select plan(46);
+select plan(56);
 
 insert into public.stores (id, code, name, country_code) values
   ('e4000000-0000-0000-0000-00000000000a', 'T-P3S', 'Tienda P3S', 'VE');
@@ -227,6 +227,57 @@ select lives_ok(
 select is(
   (select count(*)::int from public.serial_import_rows where import_id = 'e4300000-0000-0000-0000-000000000003'), 0,
   'no queda ninguna fila de staging tras el purge'
+);
+
+-- ---------------------------------------------------------------------------
+-- Código de barras opcional (2026-09-21): un archivo mixto (con y sin
+-- barcode) no se bloquea; falta de barcode ya no es ERROR, y el import
+-- congela cuántos de los realmente creados quedaron sin uno.
+-- ---------------------------------------------------------------------------
+select lives_ok(
+  $$ insert into public.serial_imports (id, lot_id, file_name)
+     values ('e4300000-0000-0000-0000-000000000005', 'e4200000-0000-0000-0000-000000000001', 'no-barcode.csv') $$,
+  'admin crea un quinto import (archivo mixto, con y sin barcode)'
+);
+select lives_ok(
+  $$ select public.stage_import_rows('e4300000-0000-0000-0000-000000000005', $j$[
+       {"row_number":1,"serial":"NOBC-01","barcode":""},
+       {"row_number":2,"serial":"NOBC-02","barcode":"BCNOBC-02"},
+       {"row_number":3,"serial":"","barcode":""}
+     ]$j$::jsonb) $$,
+  'sube un bloque con una fila sin barcode, una con barcode y una totalmente vacía'
+);
+select is(
+  (select count(*)::int from public.serial_import_rows where import_id = 'e4300000-0000-0000-0000-000000000005' and status = 'VALID'),
+  2, 'las dos filas con serial quedan VALID (la falta de barcode ya no es error)'
+);
+select is(
+  (select count(*)::int from public.serial_import_rows where import_id = 'e4300000-0000-0000-0000-000000000005' and status = 'ERROR'),
+  1, 'la fila totalmente vacía sigue siendo ERROR (falta el serial)'
+);
+select lives_ok(
+  $$ select public.start_import_commit('e4300000-0000-0000-0000-000000000005') $$,
+  'confirma el quinto import'
+);
+select is(
+  (select committed_count from public.commit_import_batch('e4300000-0000-0000-0000-000000000005', 100)), 2,
+  'comprometen las 2 filas VALID, con y sin barcode'
+);
+select is(
+  (select status from public.serial_imports where id = 'e4300000-0000-0000-0000-000000000005'), 'COMPLETED',
+  'el quinto import llega a COMPLETED'
+);
+select is(
+  (select missing_barcode_rows from public.serial_imports where id = 'e4300000-0000-0000-0000-000000000005')::int, 1,
+  'missing_barcode_rows queda congelado en 1 (NOBC-01, la que no traía barcode)'
+);
+select is(
+  (select barcode from public.serials where serial = 'NOBC-01'), null,
+  'el serial creado sin barcode queda con barcode null (no vacío)'
+);
+select is(
+  (select barcode from public.serials where serial = 'NOBC-02'), 'BCNOBC-02',
+  'el serial con barcode en el mismo archivo lo conserva sin verse afectado'
 );
 
 reset role;

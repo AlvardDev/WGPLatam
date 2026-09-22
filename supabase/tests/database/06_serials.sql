@@ -9,7 +9,7 @@
 -- dedicadas (fuera de alcance de esta fase). El mecanismo se verifica por
 -- inspección del código de la función, no por un test automatizado aquí.
 begin;
-select plan(24);
+select plan(35);
 
 insert into public.stores (id, code, name, country_code) values
   ('e3000000-0000-0000-0000-00000000000a', 'T-P2S', 'Tienda P2S', 'VE');
@@ -74,6 +74,45 @@ select is(
   (select imported_count from public.lots where id = 'e3200000-0000-0000-0000-000000000001')::int, 1,
   'lots.imported_count se actualiza automáticamente al crear un serial'
 );
+
+-- Código de barras opcional (2026-09-21): se puede crear/completar después.
+select lives_ok(
+  $$ select public.create_serial('e3100000-0000-0000-0000-000000000001', 'e3200000-0000-0000-0000-000000000001', 'SINBC-001', null) $$,
+  'admin puede crear un serial sin código de barras'
+);
+select is(
+  (select barcode from public.serials where serial = 'SINBC-001'), null,
+  'el serial queda con barcode null'
+);
+select lives_ok(
+  $$ select public.create_serial('e3100000-0000-0000-0000-000000000001', 'e3200000-0000-0000-0000-000000000001', 'SINBC-002', '') $$,
+  'un barcode vacío también se guarda como null'
+);
+select is(
+  (select count(*)::int from public.serials where serial in ('SINBC-001', 'SINBC-002') and barcode is null), 2,
+  'dos seriales sin barcode no chocan entre sí'
+);
+select lives_ok(
+  $$ select public.set_serial_barcode((select id from public.serials where serial = 'SINBC-001'), '900000001') $$,
+  'admin puede completar el barcode de un serial AVAILABLE'
+);
+select is(
+  (select barcode from public.serials where serial = 'SINBC-001'), '900000001',
+  'el barcode queda guardado normalizado'
+);
+select throws_like(
+  $$ select public.set_serial_barcode((select id from public.serials where serial = 'SINBC-002'), '') $$,
+  '%must not be empty%', 'set_serial_barcode exige un valor no vacío'
+);
+select throws_like(
+  $$ select public.set_serial_barcode((select id from public.serials where serial = 'SINBC-002'), '900000001') $$,
+  '%collision%', 'set_serial_barcode rechaza un barcode que ya usa otro serial'
+);
+select throws_like(
+  $$ select public.set_serial_barcode((select id from public.serials where serial = 'SINBC-002'), 'SINBC-002') $$,
+  '%must differ%', 'set_serial_barcode rechaza que el barcode sea igual al propio serial'
+);
+
 select throws_like(
   $$ select public.block_serial((select id from public.serials where serial='ABC-001'), '') $$,
   '%reason is required%', 'block_serial exige un motivo no vacío'
@@ -112,6 +151,10 @@ select throws_like(
   $$ select public.void_serial((select id from public.serials where serial='ABC-001'), 'otra vez') $$,
   '%invalid transition%', 'VOID es permanente: no se puede volver a anular'
 );
+select throws_like(
+  $$ select public.set_serial_barcode((select id from public.serials where serial='ABC-001'), '999999999') $$,
+  '%invalid state%', 'set_serial_barcode rechaza un serial que no está AVAILABLE'
+);
 
 reset role;
 reset request.jwt.claims;
@@ -128,6 +171,10 @@ select throws_like(
 select throws_like(
   $$ select public.block_serial('e3100000-0000-0000-0000-000000000001'::uuid, 'x') $$,
   '%only admin%', 'un vendedor no puede invocar block_serial'
+);
+select throws_like(
+  $$ select public.set_serial_barcode('e3100000-0000-0000-0000-000000000001'::uuid, 'X') $$,
+  '%only admin%', 'un vendedor no puede invocar set_serial_barcode'
 );
 
 reset role;

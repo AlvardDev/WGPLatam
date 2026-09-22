@@ -2,6 +2,46 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Código de barras opcional al crear/importar seriales (2026-09-21)
+
+Pedido del cliente: poder cargar seriales que todavía no tienen código de barras (incluyendo un
+`.txt` tipo bloc de notas, un serial por línea) y completarlo después, sin bloquear la
+importación ni mezclar seriales con y sin barcode en el mismo archivo. Toca las Fases 2, 3 y 5/6
+(ya "COMPLETA" en este documento) — se documenta acá como cambio incremental, no se reabren esos
+checkpoints.
+
+**Corrección sobre el diseño inicial de esta misma sesión:** actívar sin barcode no queda
+prohibido — el vendedor puede hacerlo, pero solo con autorización explícita de un admin (no es
+libre). Se agregó `serial_barcode_waivers` (solicitud/decisión, mismo patrón que
+`warranty_corrections`) para eso.
+
+- Migración `20260921000000_optional_serial_barcode.sql`: `serials.barcode`, `serial_import_rows.barcode`
+  y `warranties.barcode` pasan a nullable; `create_serial` recibe `p_barcode` opcional; nueva RPC
+  `set_serial_barcode` (admin, solo mientras el serial está `AVAILABLE`) para completarlo después;
+  `stage_import_rows` deja de clasificar "falta barcode" como `ERROR`; `commit_import_batch` congela
+  `serial_imports.missing_barcode_rows` al completar. Nueva tabla `serial_barcode_waivers` +
+  RPC `request_barcode_waiver` (vendedor) / `decide_barcode_waiver` (admin): `activate_warranty`
+  deja activar sin barcode solo si existe una autorización `APPROVED` para ese serial, si no
+  rechaza pidiendo que se solicite. `lookup_serial` expone el estado de esa solicitud
+  (`barcode_waiver_status`/`barcode_waiver_note`) para que el vendedor lo vea antes de intentar
+  activar. Detalle completo y por qué la detección de colisión/duplicados no necesitó tocarse
+  (NULL-safe por construcción) en `docs/DATABASE.md`, "Código de barras opcional".
+- pgTAP: `06_serials.sql` (24 → 35 asserts), `07_serial_imports.sql` (46 → 56 asserts) — crear/
+  completar sin barcode, colisión al completar, estado inválido, archivo mixto con y sin barcode.
+  `09_warranties.sql` (36 → 53 asserts) — flujo completo de autorización: rechazo sin solicitud,
+  solicitud duplicada, aislamiento por tienda, admin no puede pedir/vendedor no puede decidir,
+  rechazo con motivo, re-solicitud, aprobación, activación exitosa con `warranties.barcode = null`.
+- Frontend: `.txt` sumado como formato de importación (`lib/import/parse-txt.ts`, sin Worker —
+  partir texto plano en líneas no lo amerita); CSV/XLSX ya no exigen columna de código de barras;
+  diálogo de creación manual y `/admin/seriales/[id]` (nuevo botón "Agregar código de barras",
+  RPC `set_serial_barcode`) reflejan lo mismo; `/tienda/activar` ofrece "Solicitar autorización"
+  cuando falta el barcode, muestra el estado (pendiente/rechazada con motivo) y solo habilita
+  "Activar garantía" cuando el admin ya aprobó.
+- La campanita de notificaciones del header (antes un link fijo a Ajustes con un punto rojo) pasa a
+  ser un dropdown con tres conteos en vivo: notificaciones de email fallidas (como antes), seriales
+  `AVAILABLE` sin código de barras (`/admin/seriales?barcode=falta`) y solicitudes de autorización
+  pendientes (`/admin/seriales?barcode=pendiente`).
+
 ## Primer despliegue a Vercel (2026-09-17)
 
 El código quedó desplegado en producción: **https://wgp-latam.vercel.app** (proyecto `wgp-latam` en la

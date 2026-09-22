@@ -17,7 +17,7 @@ import {
 export type SerialRow = {
   id: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   status: string;
   created_at: string;
   products: { name: string } | null;
@@ -44,7 +44,7 @@ function toCsv(rows: SerialRow[]) {
   const lines = rows.map((r) =>
     [
       r.serial,
-      r.barcode,
+      r.barcode ?? "",
       r.products?.name ?? "",
       r.lots?.code ?? "",
       STATUS_LABEL[r.status] ?? r.status,
@@ -144,7 +144,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                     {s.serial}
                   </Link>
                 </TableCell>
-                <TableCell className="font-mono text-sm text-muted-foreground">{s.barcode}</TableCell>
+                <TableCell className="font-mono text-sm text-muted-foreground">{s.barcode ?? "—"}</TableCell>
                 <TableCell className="text-sm">{s.products?.name}</TableCell>
                 <TableCell className="font-mono text-sm text-muted-foreground">{s.lots?.code}</TableCell>
                 <TableCell>

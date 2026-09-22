@@ -64,7 +64,7 @@ export async function uploadFile(
   }
 }
 
-export type ImportCounts = { total: number; valid: number; duplicate: number; error: number };
+export type ImportCounts = { total: number; valid: number; duplicate: number; error: number; missingBarcode: number };
 
 // count(*) por estado en vez de traer cada fila: una importación real puede
 // tener hasta 1M filas (docs/DATABASE.md), y esto corre en el navegador
@@ -75,18 +75,20 @@ export type ImportCounts = { total: number; valid: number; duplicate: number; er
 export async function fetchPreviewCounts(importId: string): Promise<ImportCounts> {
   const supabase = createClient();
   const base = () => supabase.from("serial_import_rows").select("id", { count: "exact", head: true }).eq("import_id", importId);
-  const [total, valid, duplicateInFile, duplicateExisting, error] = await Promise.all([
+  const [total, valid, duplicateInFile, duplicateExisting, error, missingBarcode] = await Promise.all([
     base(),
     base().eq("status", "VALID"),
     base().eq("status", "DUPLICATE_IN_FILE"),
     base().eq("status", "DUPLICATE_EXISTING"),
     base().eq("status", "ERROR"),
+    base().eq("status", "VALID").is("barcode", null),
   ]);
   return {
     total: total.count ?? 0,
     valid: valid.count ?? 0,
     duplicate: (duplicateInFile.count ?? 0) + (duplicateExisting.count ?? 0),
     error: error.count ?? 0,
+    missingBarcode: missingBarcode.count ?? 0,
   };
 }
 

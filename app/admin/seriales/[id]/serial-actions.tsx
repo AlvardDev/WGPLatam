@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, Lock, Unlock } from "lucide-react";
+import { Ban, Barcode, Check, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
@@ -15,13 +15,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { blockSerialAction, unblockSerialAction, voidSerialAction } from "@/lib/actions/serials";
+import { blockSerialAction, setSerialBarcodeAction, unblockSerialAction, voidSerialAction } from "@/lib/actions/serials";
+import { decideBarcodeWaiverAction } from "@/lib/actions/warranties";
 
+// Genérico: un diálogo con un único campo de texto + confirmar. Lo usan
+// Bloquear/Anular (fieldLabel="Motivo", el default) y también "Agregar
+// código de barras" (fieldLabel="Código de barras") — mismo shape, distinto
+// campo y acción.
 function ReasonDialog({
   trigger,
   title,
   description,
   confirmLabel,
+  fieldLabel = "Motivo",
   destructive,
   onConfirm,
 }: {
@@ -29,16 +35,17 @@ function ReasonDialog({
   title: string;
   description: string;
   confirmLabel: string;
+  fieldLabel?: string;
   destructive?: boolean;
-  onConfirm: (reason: string) => Promise<{ error?: string; success?: boolean }>;
+  onConfirm: (value: string) => Promise<{ error?: string; success?: boolean }>;
 }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [value, setValue] = useState("");
   const [touched, setTouched] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const trimmed = reason.trim();
+  const trimmed = value.trim();
 
   const submit = () => {
     setTouched(true);
@@ -50,7 +57,7 @@ function ReasonDialog({
       } else {
         toast.success("Listo.");
         setOpen(false);
-        setReason("");
+        setValue("");
         setTouched(false);
         router.refresh();
       }
@@ -67,9 +74,9 @@ function ReasonDialog({
         </DialogHeader>
         <FieldGroup>
           <Field data-invalid={touched && !trimmed}>
-            <FieldLabel htmlFor="reason">Motivo</FieldLabel>
-            <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
-            <FieldError errors={touched && !trimmed ? [{ message: "El motivo es obligatorio" }] : []} />
+            <FieldLabel htmlFor="reason">{fieldLabel}</FieldLabel>
+            <Input id="reason" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+            <FieldError errors={touched && !trimmed ? [{ message: "Requerido" }] : []} />
           </Field>
           <Button
             variant={destructive ? "destructive" : "default"}
@@ -84,13 +91,72 @@ function ReasonDialog({
   );
 }
 
-export function SerialActions({ id, status }: { id: string; status: string }) {
+export function SerialActions({
+  id,
+  status,
+  barcode,
+  pendingWaiverId,
+}: {
+  id: string;
+  status: string;
+  barcode: string | null;
+  pendingWaiverId: string | null;
+}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  const approveWaiver = () => {
+    if (!pendingWaiverId) return;
+    startTransition(async () => {
+      const result = await decideBarcodeWaiverAction(pendingWaiverId, { decision: "APPROVED" });
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success("Autorización concedida.");
+        router.refresh();
+      }
+    });
+  };
+
   if (status === "AVAILABLE") {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        {!barcode && (
+          <ReasonDialog
+            trigger={
+              <Button variant="outline">
+                <Barcode className="size-4" />
+                Agregar código de barras
+              </Button>
+            }
+            title="Agregar código de barras"
+            description="Este serial se creó o importó sin código de barras. Complétalo antes de poder activar una garantía con él."
+            confirmLabel="Guardar"
+            fieldLabel="Código de barras"
+            onConfirm={(value) => setSerialBarcodeAction(id, value)}
+          />
+        )}
+        {pendingWaiverId && (
+          <>
+            <Button variant="outline" disabled={isPending} onClick={approveWaiver}>
+              <Check className="size-4" />
+              Autorizar activación sin código
+            </Button>
+            <ReasonDialog
+              trigger={
+                <Button variant="destructive">
+                  <Ban className="size-4" />
+                  Rechazar solicitud
+                </Button>
+              }
+              title="Rechazar autorización"
+              description="El vendedor verá este motivo y puede volver a solicitarlo."
+              confirmLabel="Rechazar"
+              fieldLabel="Motivo del rechazo"
+              destructive
+              onConfirm={(note) => decideBarcodeWaiverAction(pendingWaiverId, { decision: "REJECTED", note })}
+            />
+          </>
+        )}
         <ReasonDialog
           trigger={
             <Button variant="outline">

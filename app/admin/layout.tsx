@@ -29,11 +29,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .select("id", { count: "exact", head: true })
     .eq("status", "FAILED");
 
+  const { count: missingBarcodeSerials } = await supabase
+    .from("serials")
+    .select("id", { count: "exact", head: true })
+    .is("barcode", null)
+    .eq("status", "AVAILABLE");
+
+  const { count: pendingBarcodeWaivers } = await supabase
+    .from("serial_barcode_waivers")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "PENDING");
+
   return (
     <AdminShell
       role={profile.role as "admin" | "superadmin"}
       fullName={profile.full_name}
       failedNotifications={failedNotifications ?? 0}
+      missingBarcodeSerials={missingBarcodeSerials ?? 0}
+      pendingBarcodeWaivers={pendingBarcodeWaivers ?? 0}
       showOnboarding={!profile.onboarding_completed_at}
     >
       {children}

@@ -34,6 +34,14 @@ function friendlyWarrantyError(message: string): string {
   if (message.includes("customer national id is required")) return "La identificación del cliente es obligatoria.";
   if (message.includes("customer whatsapp is required")) return "El WhatsApp del cliente es obligatorio.";
   if (message.includes("E.164 format")) return "El WhatsApp debe estar en formato internacional (ej. +584121234567).";
+  if (message.includes("serial has no barcode"))
+    return "Este serial no tiene código de barras; solicitá autorización al administrador para activarlo igual.";
+  if (message.includes("serial already has a barcode")) return "Este serial ya tiene código de barras.";
+  if (message.includes("invalid state")) return "Ese serial ya no está disponible para esta acción.";
+  if (message.includes("pending barcode waiver")) return "Ya existe una solicitud pendiente para este serial.";
+  if (message.includes("barcode waiver request not found")) return "La solicitud no existe.";
+  if (message.includes("barcode waiver request is not pending")) return "Esta solicitud ya fue decidida.";
+  if (message.includes("only admin can decide barcode waivers")) return "No tienes permiso para hacer esto.";
   if (message.includes("only an active seller")) return "No tienes permiso para hacer esto.";
   if (message.includes("warranty not found")) return "La garantía no existe.";
   if (message.includes("belongs to another store")) return "No tienes permiso para editar esta garantía.";
@@ -74,11 +82,13 @@ function friendlyWarrantyError(message: string): string {
 export type SerialLookupResult = {
   serial_id: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   product_code: string;
   product_name: string;
   warranty_duration_days: number;
   status: "AVAILABLE" | "ACTIVATED" | "BLOCKED" | "VOID";
+  barcode_waiver_status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  barcode_waiver_note: string | null;
 };
 
 export async function lookupSerialAction(
@@ -102,7 +112,7 @@ export type ActivateWarrantyResult = {
   duration_days: number;
   product_name: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   lot_code: string;
 };
 
@@ -130,6 +140,37 @@ export async function activateWarrantyAction(
 
   revalidatePath("/tienda");
   return { result };
+}
+
+// Código de barras opcional (2026-09-21): activar sin barcode no está
+// prohibido, pero exige que un admin lo autorice primero. Ver
+// serial_barcode_waivers en supabase/migrations/20260921000000_optional_serial_barcode.sql.
+export async function requestBarcodeWaiverAction(
+  serialId: string,
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_barcode_waiver", { p_serial_id: serialId });
+  if (error) return { error: friendlyWarrantyError(error.message) };
+  revalidatePath("/tienda/activar");
+  return { success: true };
+}
+
+export async function decideBarcodeWaiverAction(
+  waiverId: string,
+  input: DecideCorrectionInput,
+): Promise<{ error?: string; success?: boolean }> {
+  const parsed = decideCorrectionSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_barcode_waiver", {
+    p_waiver_id: waiverId,
+    p_decision: parsed.data.decision,
+    p_note: parsed.data.note ?? null,
+  });
+  if (error) return { error: friendlyWarrantyError(error.message) };
+  revalidatePath("/admin/seriales");
+  return { success: true };
 }
 
 export async function updateWarrantyCustomerAction(

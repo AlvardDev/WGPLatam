@@ -17,7 +17,7 @@ type WarrantyPdfRow = {
   product_name: string;
   product_code: string;
   serial: string;
-  barcode: string;
+  barcode: string | null;
   lot_code: string;
   activated_at: string;
   expires_at: string;

@@ -18,10 +18,10 @@ function normalizeHeader(h: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-export function findColumnNames(headers: string[]): { serialKey: string; barcodeKey: string } | null {
+export function findColumnNames(headers: string[]): { serialKey: string; barcodeKey: string | null } | null {
   const serialKey = headers.find((h) => normalizeHeader(h) === "serial");
-  const barcodeKey = headers.find((h) => BARCODE_HEADERS.includes(normalizeHeader(h)));
-  if (!serialKey || !barcodeKey) return null;
+  if (!serialKey) return null;
+  const barcodeKey = headers.find((h) => BARCODE_HEADERS.includes(normalizeHeader(h))) ?? null;
   return { serialKey, barcodeKey };
 }
 
@@ -33,13 +33,13 @@ export function rowsFromRecords(records: Record<string, string>[], startIndex = 
   const headers = Object.keys(records[0]);
   const cols = findColumnNames(headers);
   if (!cols) {
-    return { ok: false, error: "El archivo debe tener columnas 'serial' y 'codigo_barras'." };
+    return { ok: false, error: "El archivo debe tener una columna 'serial'." };
   }
 
   const rows: ParsedRow[] = [];
   records.forEach((record, i) => {
     const serial = (record[cols.serialKey] ?? "").toString().trim();
-    const barcode = (record[cols.barcodeKey] ?? "").toString().trim();
+    const barcode = cols.barcodeKey ? (record[cols.barcodeKey] ?? "").toString().trim() : "";
     // Fila totalmente vacía (línea en blanco al final del archivo, típico en
     // CSV): se descarta en silencio, no es un error de negocio. Una fila con
     // solo UNA columna vacía sí se envía — el servidor la clasifica como
@@ -48,4 +48,17 @@ export function rowsFromRecords(records: Record<string, string>[], startIndex = 
     rows.push({ rowNumber: startIndex + i + 1, serial, barcode });
   });
   return { ok: true, rows };
+}
+
+// Formato "bloc de notas" (ver parse-txt.ts): un serial por línea, sin
+// encabezado ni columna de código de barras. Siempre "ok" — a diferencia de
+// rowsFromRecords, acá no hay un set de columnas que pueda faltar.
+export function rowsFromLines(lines: string[], startIndex = 0): ParsedRow[] {
+  const rows: ParsedRow[] = [];
+  lines.forEach((line, i) => {
+    const serial = line.trim();
+    if (serial === "") return;
+    rows.push({ rowNumber: startIndex + i + 1, serial, barcode: "" });
+  });
+  return rows;
 }

@@ -13,8 +13,11 @@ describe("findColumnNames", () => {
     expect(findColumnNames(["serial", "barcode"])).toEqual({ serialKey: "serial", barcodeKey: "barcode" });
   });
 
-  it("returns null when a required column is missing", () => {
-    expect(findColumnNames(["serial", "otra_columna"])).toBeNull();
+  it("accepts a file with only 'serial' — barcode is optional", () => {
+    expect(findColumnNames(["serial", "otra_columna"])).toEqual({ serialKey: "serial", barcodeKey: null });
+  });
+
+  it("returns null when 'serial' is missing", () => {
     expect(findColumnNames(["codigo_barras"])).toBeNull();
   });
 });
@@ -48,5 +51,19 @@ describe("rowsFromRecords", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.rows).toEqual([{ rowNumber: 5001, serial: "A-1", barcode: "B-1" }]);
+  });
+
+  it("treats every row's barcode as empty when the file has no barcode column at all", () => {
+    const result = rowsFromRecords([
+      { serial: "A-1" },
+      { serial: "" },
+      { serial: "A-2" },
+    ]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.rows).toEqual([
+      { rowNumber: 1, serial: "A-1", barcode: "" },
+      { rowNumber: 3, serial: "A-2", barcode: "" },
+    ]);
   });
 });

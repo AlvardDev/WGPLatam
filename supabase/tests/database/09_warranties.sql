@@ -14,7 +14,7 @@
 -- (b) el "doble cinturón" real: el UNIQUE de warranties.serial_id, probado
 --     con un INSERT directo que bypassea la RPC por completo.
 begin;
-select plan(36);
+select plan(53);
 
 insert into public.stores (id, code, name, country_code, is_active) values
   ('f5000000-0000-0000-0000-00000000000a', 'T-F5A', 'Tienda F5 A', 'VE', true),
@@ -347,6 +347,136 @@ set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","
 select is(
   (select count(*)::int from public.warranties),
   2, 'el admin ve todas las garantías, de cualquier tienda'
+);
+
+reset role;
+reset request.jwt.claims;
+
+-- ---------------------------------------------------------------------------
+-- Código de barras opcional (2026-09-21): activar sin barcode no está
+-- prohibido, pero exige una autorización APPROVED de un admin
+-- (serial_barcode_waivers) — el vendedor no puede simplemente saltárselo.
+-- ---------------------------------------------------------------------------
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
+
+select public.create_serial('f5100000-0000-0000-0000-000000000001', 'f5200000-0000-0000-0000-000000000001', 'F5-NOBC-1', null);
+
+reset role;
+reset request.jwt.claims;
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a2","role":"authenticated"}';
+
+select is(
+  (select barcode_waiver_status from public.lookup_serial('F5-NOBC-1')), null,
+  'sin solicitud todavía, barcode_waiver_status es null'
+);
+select throws_like(
+  $$ select * from public.activate_warranty('F5-NOBC-1', '{"name":"Ana","national_id":"V1","whatsapp":"+584121234567"}'::jsonb) $$,
+  '%no barcode assigned%', 'no se puede activar un serial sin barcode sin autorización'
+);
+select lives_ok(
+  $$ select public.request_barcode_waiver((select id from public.serials where serial = 'F5-NOBC-1')) $$,
+  'el vendedor puede solicitar autorización para activar sin barcode'
+);
+select throws_like(
+  $$ select public.request_barcode_waiver((select id from public.serials where serial = 'F5-NOBC-1')) $$,
+  '%pending barcode waiver%', 'no se puede pedir dos veces mientras hay una solicitud pendiente'
+);
+select is(
+  (select barcode_waiver_status from public.lookup_serial('F5-NOBC-1')), 'PENDING',
+  'lookup_serial refleja la solicitud pendiente'
+);
+select throws_like(
+  $$ select * from public.activate_warranty('F5-NOBC-1', '{"name":"Ana","national_id":"V1","whatsapp":"+584121234567"}'::jsonb) $$,
+  '%no barcode assigned%', 'seguir sin poder activar mientras está solo PENDING (no APPROVED)'
+);
+
+reset role;
+reset request.jwt.claims;
+
+-- Aislamiento: el vendedor de la tienda B no ve la solicitud de la tienda A.
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000b1","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from public.serial_barcode_waivers), 0,
+  'un vendedor de otra tienda no ve la solicitud de autorización de la tienda A'
+);
+
+reset role;
+reset request.jwt.claims;
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
+
+select throws_like(
+  $$ select public.request_barcode_waiver((select id from public.serials where serial = 'F5-NOBC-1')) $$,
+  '%only an active seller%', 'un admin no puede solicitar una autorización (esa acción es del vendedor)'
+);
+select lives_ok(
+  $$ select public.decide_barcode_waiver(
+       (select id from public.serial_barcode_waivers where serial_id = (select id from public.serials where serial = 'F5-NOBC-1') and status = 'PENDING'),
+       'REJECTED', 'Falta evidencia de la unidad') $$,
+  'el admin rechaza la solicitud, con motivo'
+);
+
+reset role;
+reset request.jwt.claims;
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a2","role":"authenticated"}';
+
+select is(
+  (select barcode_waiver_status from public.lookup_serial('F5-NOBC-1')), 'REJECTED',
+  'lookup_serial refleja el rechazo'
+);
+select is(
+  (select barcode_waiver_note from public.lookup_serial('F5-NOBC-1')), 'Falta evidencia de la unidad',
+  'lookup_serial expone el motivo del rechazo'
+);
+select throws_like(
+  $$ select * from public.activate_warranty('F5-NOBC-1', '{"name":"Ana","national_id":"V1","whatsapp":"+584121234567"}'::jsonb) $$,
+  '%no barcode assigned%', 'rechazada la solicitud, sigue sin poder activar'
+);
+select lives_ok(
+  $$ select public.request_barcode_waiver((select id from public.serials where serial = 'F5-NOBC-1')) $$,
+  'el vendedor puede volver a solicitar después de un rechazo'
+);
+select throws_like(
+  $$ select public.decide_barcode_waiver(
+       (select id from public.serial_barcode_waivers where serial_id = (select id from public.serials where serial = 'F5-NOBC-1') and status = 'PENDING'),
+       'APPROVED', null) $$,
+  '%only admin%', 'un vendedor no puede decidir su propia solicitud'
+);
+
+reset role;
+reset request.jwt.claims;
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a1","role":"authenticated","aal":"aal2"}';
+
+select lives_ok(
+  $$ select public.decide_barcode_waiver(
+       (select id from public.serial_barcode_waivers where serial_id = (select id from public.serials where serial = 'F5-NOBC-1') and status = 'PENDING'),
+       'APPROVED', null) $$,
+  'el admin autoriza la segunda solicitud'
+);
+
+reset role;
+reset request.jwt.claims;
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"f5000000-0000-0000-0000-0000000000a2","role":"authenticated"}';
+
+select lives_ok(
+  $$ select * from public.activate_warranty('F5-NOBC-1', '{"name":"Ana Sin Barcode","national_id":"V-9","whatsapp":"+584121234567"}'::jsonb) $$,
+  'autorizado, el vendedor ya puede activar el serial sin barcode'
+);
+select is(
+  (select barcode from public.warranties where serial = 'F5-NOBC-1'), null,
+  'la garantía queda con barcode null, a propósito'
 );
 
 reset role;

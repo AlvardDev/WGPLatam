@@ -27,7 +27,7 @@ export type WarrantyPdfData = {
   store: { name: string; code: string };
   product: { name: string; code: string };
   serial: string;
-  barcode: string;
+  barcode: string | null;
   lotCode: string;
   activatedAt: string;
   expiresAt: string;
@@ -102,7 +102,7 @@ export function WarrantyPdfDocument(data: WarrantyPdfData) {
           <Text style={styles.sectionTitle}>Producto</Text>
           <Row label="Producto" value={`${data.product.name} (${data.product.code})`} />
           <Row label="Serial" value={data.serial} />
-          <Row label="Código de barras" value={data.barcode} />
+          <Row label="Código de barras" value={data.barcode ?? "—"} />
           <Row label="Lote" value={data.lotCode} />
         </View>
 

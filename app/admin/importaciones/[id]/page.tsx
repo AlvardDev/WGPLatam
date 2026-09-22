@@ -16,6 +16,7 @@ type ImportDetail = {
   duplicate_rows: number;
   error_rows: number;
   committed_rows: number;
+  missing_barcode_rows: number;
   created_at: string;
   lot_id: string;
   lots: { code: string; products: { name: string } | null } | null;
@@ -36,7 +37,7 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
   const { data: imp, error } = await supabase
     .from("serial_imports")
     .select(
-      "id, file_name, status, total_rows, valid_rows, duplicate_rows, error_rows, committed_rows, created_at, lot_id, lots(code, products(name))",
+      "id, file_name, status, total_rows, valid_rows, duplicate_rows, error_rows, committed_rows, missing_barcode_rows, created_at, lot_id, lots(code, products(name))",
     )
     .eq("id", id)
     .single()
@@ -59,12 +60,13 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
         Lote: {imp.lots?.products?.name} — <span className="font-mono">{imp.lots?.code}</span>
       </p>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-6">
         <Stat label="Total" value={imp.total_rows} />
         <Stat label="Válidas" value={imp.valid_rows} />
         <Stat label="Duplicadas" value={imp.duplicate_rows} />
         <Stat label="Con error" value={imp.error_rows} />
         <Stat label="Creadas" value={imp.committed_rows} />
+        <Stat label="Sin código de barras" value={imp.missing_barcode_rows} />
       </div>
 
       {(imp.status === "STAGING" || imp.status === "COMMITTING" || imp.status === "FAILED") && (

@@ -114,7 +114,7 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
               <FieldError errors={[errors.serial]} />
             </Field>
             <Field data-invalid={!!errors.barcode}>
-              <FieldLabel htmlFor="barcode">Código de barras</FieldLabel>
+              <FieldLabel htmlFor="barcode">Código de barras (opcional)</FieldLabel>
               <Input id="barcode" {...register("barcode")} />
               <FieldError errors={[errors.barcode]} />
             </Field>

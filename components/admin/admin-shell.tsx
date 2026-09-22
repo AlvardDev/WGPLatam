@@ -39,12 +39,16 @@ export function AdminShell({
   role,
   fullName,
   failedNotifications,
+  missingBarcodeSerials,
+  pendingBarcodeWaivers,
   showOnboarding,
   children,
 }: {
   role: "admin" | "superadmin";
   fullName: string;
   failedNotifications: number;
+  missingBarcodeSerials: number;
+  pendingBarcodeWaivers: number;
   showOnboarding: boolean;
   children: React.ReactNode;
 }) {
@@ -92,7 +96,11 @@ export function AdminShell({
             </div>
 
             <div className="ml-auto flex items-center gap-2 md:ml-0">
-              <NotificationBell failedCount={failedNotifications} />
+              <NotificationBell
+                failedCount={failedNotifications}
+                missingBarcodeCount={missingBarcodeSerials}
+                pendingWaiverCount={pendingBarcodeWaivers}
+              />
               <AdminUserMenu fullName={fullName} roleLabel={ROLE_LABEL[role]} />
             </div>
           </header>
