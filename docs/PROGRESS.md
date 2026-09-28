@@ -37,42 +37,13 @@ probable a partir de leer el código, no un diagnóstico verificado con `EXPLAIN
 - Sin verificar con `tsc`/`lint`/`vitest`/`build` en este entorno (mismo bloqueo de red de
   siempre esta sesión). Revisado a mano.
 
-## Editar vendedor por modal + RPC nueva — commiteado, sin aplicar contra el proyecto real (2026-09-28)
-
-Pedido explícito del usuario, misma sesión que el ícono de editar de tiendas (ver abajo):
-vendedores no tenía forma de corregir nombre o reasignar tienda después de creado, solo
-activar/desactivar. A diferencia de tiendas, esto sí requirió backend nuevo: no existía ningún
-RPC para corregir nombre/tienda de un vendedor ya aprovisionado (`admin_finalize_seller_profile`
-es solo para el alta inicial, falla a propósito con `already provisioned` si `role` ya no es
-`null`).
-
-- Migración nueva `20260928000000_seller_profile_update.sql`: RPC
-  `admin_update_seller_profile(user_id, full_name, store_id)`, mismo checklist de seguridad que
-  el resto de Fase 4 (`search_path=''`, revoke a `anon`/`public`, re-verifica `is_admin()` y que
-  la tienda destino exista/esté activa) pero exige lo opuesto — que el perfil **ya** sea
-  `role='seller'` — y no toca `is_active`/`role` (eso sigue siendo `admin_set_seller_active`, a
-  propósito, para no mezclar "editar datos" con "revocar acceso").
-- Nuevo `updateSeller` (`lib/actions/sellers.ts`) llama a ese RPC con la sesión normal del admin
-  (auditoría con el actor correcto, mismo patrón que el resto) y después sincroniza
-  `app_metadata` vía el cliente de service role (nada crítico lo lee hoy — proxy.ts solo usa el
-  rol — pero evita que quede desincronizado de `profiles`).
-- Nuevo `updateSellerSchema` (`lib/validation/sellers.ts`, solo `fullName`/`storeId`: el correo
-  no se edita acá, es la identidad en `auth.users`, y la contraseña sigue su propio flujo de
-  restablecimiento). Frontend: `edit-seller-form.tsx` + `edit-seller-dialog.tsx`, mismo patrón de
-  ícono de lápiz que tiendas, en `/admin/vendedores`.
-- **Bloqueante real, decidido explícitamente con el usuario**: el MCP de Supabase falló al
-  conectar en este entorno (`ERR_PROXY_TUNNEL`) — no se pudo aplicar
-  `20260928000000_seller_profile_update.sql` contra el proyecto real ni escribirle/correrle
-  pgTAP. Por eso este cambio **se commiteó en la rama de la sesión pero no se subió a `main`**
-  (a diferencia del ícono de editar de tiendas, que sí se subió — no depende de SQL nuevo). Hasta
-  que alguien aplique esta migración (SQL Editor del dashboard, con el MCP reconectado, o
-  `supabase db push`) y el commit llegue a `main`, el botón de editar vendedor no existe en
-  producción.
-- Docs vivas actualizadas: `SECURITY.md` (checklist de la función nueva, con la misma salvedad de
-  arriba), `DATABASE.md` (fila de `admin_update_seller_profile`).
-- Sin verificar con `tsc`/`lint`/`vitest`/`build` en este entorno: `npm install` bloqueado por
-  política de red al descargar `xlsx` desde `cdn.sheetjs.com`, ajeno a este cambio. Revisado a
-  mano.
+> **Nota (2026-09-28, mismo día):** el commit "Editar vendedor por modal (nombre/tienda)" llegó a
+> `main` por error (un `git push origin HEAD:main` de más, después de haber decidido
+> explícitamente con el usuario dejarlo solo en la rama de la sesión hasta aplicar su migración)
+> y se revirtió de inmediato con `git revert`. El código y la migración
+> (`20260928000000_seller_profile_update.sql`) siguen intactos en la rama `ccr-a5c7c7df-iksmwx`
+> — no se perdió nada, solo se sacó de `main` hasta que la migración esté aplicada contra el
+> proyecto real.
 
 ## Ícono de editar (modal) en /admin/tiendas (2026-09-28)
 

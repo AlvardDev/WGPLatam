@@ -4,12 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import {
-  createSellerSchema,
-  updateSellerSchema,
-  type CreateSellerInput,
-  type UpdateSellerInput,
-} from "@/lib/validation/sellers";
+import { createSellerSchema, type CreateSellerInput } from "@/lib/validation/sellers";
 
 // Efectivamente permanente (100 años) — Supabase Auth no tiene un "ban
 // indefinido" real, solo una fecha límite muy lejana. Ver docs/PROJECT-PLAN.md:
@@ -85,46 +80,6 @@ export async function createSeller(
 
   revalidatePath("/admin/vendedores");
   return { id: userId };
-}
-
-/** Corrige nombre y/o reasigna tienda de un vendedor ya activo. No cambia is_active/rol. */
-export async function updateSeller(
-  id: string,
-  input: UpdateSellerInput,
-): Promise<{ error?: string; success?: boolean; warning?: string }> {
-  const admin = await requireAdmin();
-  if (!admin) return { error: "No tienes permiso para editar vendedores." };
-
-  const parsed = updateSellerSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  const { fullName, storeId } = parsed.data;
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_seller_profile", {
-    p_user_id: id,
-    p_full_name: fullName,
-    p_store_id: storeId,
-  });
-  if (error) return { error: friendlySellerError(error.message) };
-
-  // Mantiene app_metadata en sincronía con profiles (mismo campo que fija
-  // createSeller) — hoy nada crítico lo lee (proxy.ts solo usa el rol), pero
-  // evita que quede desincronizado si algo llega a depender de él después.
-  const adminClient = createAdminClient();
-  const { error: metadataError } = await adminClient.auth.admin.updateUserById(id, {
-    app_metadata: { role: "seller", store_id: storeId, full_name: fullName },
-  });
-
-  revalidatePath("/admin/vendedores");
-  revalidatePath(`/admin/vendedores/${id}`);
-
-  if (metadataError) {
-    return {
-      success: true,
-      warning: "El vendedor quedó actualizado, aunque no se pudo sincronizar un dato interno. Sin impacto en su acceso.",
-    };
-  }
-  return { success: true };
 }
 
 export async function setSellerActive(
