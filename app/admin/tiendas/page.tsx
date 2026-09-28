@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Store } from "lucide-react";
+import { Pencil, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -78,8 +78,12 @@ export default async function TiendasPage({
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-sm">{s.code}</TableCell>
                   <TableCell>
-                    <Link href={`/admin/tiendas/${s.id}`} className="font-medium hover:underline">
+                    <Link
+                      href={`/admin/tiendas/${s.id}`}
+                      className="inline-flex items-center gap-1.5 font-medium hover:underline"
+                    >
                       {s.name}
+                      <Pencil className="size-3.5 text-muted-foreground" />
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{s.country_code}</TableCell>
