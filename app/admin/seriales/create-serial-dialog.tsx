@@ -12,6 +12,8 @@ import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -24,6 +26,11 @@ type Lot = { id: string; code: string; product_id: string };
 
 export function CreateSerialDialog({ products, lots }: { products: Product[]; lots: Lot[] }) {
   const [open, setOpen] = useState(false);
+  // Distinto de isPending/errors de react-hook-form: este es el paso
+  // intermedio de "vas a crear sin código de barras, seguro?" — guarda los
+  // valores ya validados mientras se muestra, se descarta al confirmar o
+  // volver. null = mostrando el formulario normal.
+  const [pendingValues, setPendingValues] = useState<CreateSerialInput | null>(null);
   const router = useRouter();
 
   const {
@@ -43,22 +50,38 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
     [lots, selectedProductId],
   );
 
-  const onValid = (values: CreateSerialInput) => {
+  const submit = (values: CreateSerialInput) => {
     startTransition(async () => {
       const result = await createSerialAction(values);
       if (result.error) {
         toast.error(result.error);
+        setPendingValues(null);
       } else {
         toast.success("Serial creado.");
         reset();
+        setPendingValues(null);
         setOpen(false);
         router.refresh();
       }
     });
   };
 
+  const onValid = (values: CreateSerialInput) => {
+    if (!values.barcode?.trim()) {
+      setPendingValues(values);
+      return;
+    }
+    submit(values);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setPendingValues(null);
+      }}
+    >
       <DialogTrigger
         render={
           <Button disabled={products.length === 0} data-onboarding-target="create-serial">
@@ -68,61 +91,84 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
         }
       />
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Crear serial</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onValid)} noValidate>
-          <FieldGroup>
-            <Field data-invalid={!!errors.productId}>
-              <FieldLabel htmlFor="productId">Producto</FieldLabel>
-              <select
-                id="productId"
-                className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                {...register("productId")}
-              >
-                <option value="">Selecciona un producto</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
-                  </option>
-                ))}
-              </select>
-              <FieldError errors={[errors.productId]} />
-            </Field>
-            <Field data-invalid={!!errors.lotId}>
-              <FieldLabel htmlFor="lotId">Lote</FieldLabel>
-              <select
-                id="lotId"
-                disabled={!selectedProductId}
-                className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                {...register("lotId")}
-              >
-                <option value="">
-                  {selectedProductId ? "Selecciona un lote" : "Elige primero un producto"}
-                </option>
-                {availableLots.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.code}
-                  </option>
-                ))}
-              </select>
-              <FieldError errors={[errors.lotId]} />
-            </Field>
-            <Field data-invalid={!!errors.serial}>
-              <FieldLabel htmlFor="serial">Serial</FieldLabel>
-              <Input id="serial" {...register("serial")} />
-              <FieldError errors={[errors.serial]} />
-            </Field>
-            <Field data-invalid={!!errors.barcode}>
-              <FieldLabel htmlFor="barcode">Código de barras (opcional)</FieldLabel>
-              <Input id="barcode" {...register("barcode")} />
-              <FieldError errors={[errors.barcode]} />
-            </Field>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Creando..." : "Crear serial"}
-            </Button>
-          </FieldGroup>
-        </form>
+        {pendingValues ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>¿Crear sin código de barras?</DialogTitle>
+              <DialogDescription>
+                El serial <span className="font-medium text-foreground">{pendingValues.serial}</span> se
+                va a crear sin código de barras. Vas a poder completarlo después desde el detalle del
+                serial.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPendingValues(null)} disabled={isPending}>
+                Volver
+              </Button>
+              <Button onClick={() => submit(pendingValues)} disabled={isPending}>
+                {isPending ? "Creando..." : "Crear sin código de barras"}
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Crear serial</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onValid)} noValidate>
+              <FieldGroup>
+                <Field data-invalid={!!errors.productId}>
+                  <FieldLabel htmlFor="productId">Producto</FieldLabel>
+                  <select
+                    id="productId"
+                    className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    {...register("productId")}
+                  >
+                    <option value="">Selecciona un producto</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError errors={[errors.productId]} />
+                </Field>
+                <Field data-invalid={!!errors.lotId}>
+                  <FieldLabel htmlFor="lotId">Lote</FieldLabel>
+                  <select
+                    id="lotId"
+                    disabled={!selectedProductId}
+                    className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                    {...register("lotId")}
+                  >
+                    <option value="">
+                      {selectedProductId ? "Selecciona un lote" : "Elige primero un producto"}
+                    </option>
+                    {availableLots.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.code}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError errors={[errors.lotId]} />
+                </Field>
+                <Field data-invalid={!!errors.serial}>
+                  <FieldLabel htmlFor="serial">Serial</FieldLabel>
+                  <Input id="serial" {...register("serial")} />
+                  <FieldError errors={[errors.serial]} />
+                </Field>
+                <Field data-invalid={!!errors.barcode}>
+                  <FieldLabel htmlFor="barcode">Código de barras (opcional)</FieldLabel>
+                  <Input id="barcode" {...register("barcode")} />
+                  <FieldError errors={[errors.barcode]} />
+                </Field>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Creando..." : "Crear serial"}
+                </Button>
+              </FieldGroup>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

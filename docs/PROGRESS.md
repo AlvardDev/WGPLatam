@@ -2,6 +2,41 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Confirmación al crear serial sin código de barras + causa raíz encontrada (2026-09-28)
+
+Reporte del usuario: al crear un serial manualmente, el campo de código de barras dice
+"(opcional)" pero dejarlo en blanco no permite crear el serial.
+
+**Causa raíz, no es un bug de código nuevo**: `create_serial` ya se reemplazó para aceptar
+`p_barcode` opcional en `20260921000000_optional_serial_barcode.sql` (sesión del 2026-09-21, ver
+más abajo en este documento) — el schema zod, el server action y la propia función SQL de ese
+archivo ya soportan barcode vacío/null correctamente (verificado leyendo el código: `nullif`,
+colisión NULL-safe, tests de `lib/validation/serials.test.ts` que ya cubren el caso). Pero esa
+entrada de PROGRESS no confirma explícitamente, como sí lo hacen otras (Fase 7/8), que la
+migración se haya aplicado contra el proyecto Supabase real — a diferencia de esas, no dice
+"corrido/aplicado contra el proyecto real". La versión de `create_serial` que corre hoy en
+producción parece ser la original de Fase 2
+(`20260915000627_serials_rpc.sql`), que sí exige `serial and barcode must not be empty` — ese es
+exactamente el mensaje que `friendlySerialError` traduce a "El código de barras no puede estar
+vacío.", el error que ve el usuario. **No se pudo confirmar esto contra la base real en esta
+sesión** (el MCP de Supabase sigue desconectado, `ERR_PROXY_TUNNEL`) — es la explicación más
+probable a partir de leer el código, no un diagnóstico verificado con `EXPLAIN`/consulta directa.
+
+- Acción tomada: si de verdad es esto, la única corrección real es **aplicar**
+  `20260921000000_optional_serial_barcode.sql` contra el proyecto real (SQL Editor del dashboard,
+  o el MCP una vez reconectado) — no hace falta escribir SQL nuevo, ya existe en el repo desde
+  hace días.
+- Pedido nuevo del usuario, sí implementado en esta sesión: que crear sin código de barras pida
+  confirmación antes de mandarlo. `create-serial-dialog.tsx`: si el campo queda en blanco al
+  enviar el formulario, en vez de crear directo muestra un paso de confirmación dentro del mismo
+  modal ("¿Crear sin código de barras?", con el número de serial de referencia) con "Volver" o
+  "Crear sin código de barras"; con barcode completo sigue creando directo, sin el paso extra.
+  Estado nuevo `pendingValues` (no toca `react-hook-form`, guarda los valores ya validados
+  mientras se muestra la confirmación); se limpia al confirmar, volver, o cerrar el diálogo.
+- Sin backend nuevo — reutiliza `createSerialAction`/`create_serial` tal cual.
+- Sin verificar con `tsc`/`lint`/`vitest`/`build` en este entorno (mismo bloqueo de red de
+  siempre esta sesión). Revisado a mano.
+
 ## Editar vendedor por modal + RPC nueva — commiteado, sin aplicar contra el proyecto real (2026-09-28)
 
 Pedido explícito del usuario, misma sesión que el ícono de editar de tiendas (ver abajo):
