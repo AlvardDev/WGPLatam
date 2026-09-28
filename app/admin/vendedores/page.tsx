@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CreateSellerDialog } from "./create-seller-dialog";
+import { EditSellerDialog } from "./edit-seller-dialog";
 import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
 
@@ -117,9 +118,12 @@ export default async function VendedoresPage({
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
-                      <Link href={`/admin/vendedores/${s.id}`} className="font-medium hover:underline">
-                        {s.full_name}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium hover:underline">
+                          {s.full_name}
+                        </Link>
+                        <EditSellerDialog seller={s} stores={stores ?? []} />
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {s.stores ? `${s.stores.name} (${s.stores.code})` : "—"}

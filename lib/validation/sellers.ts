@@ -19,3 +19,14 @@ export const createSellerSchema = z.object({
 });
 
 export type CreateSellerInput = z.infer<typeof createSellerSchema>;
+
+// Editar un vendedor ya activo: solo nombre y tienda (mismo motivo de
+// storeId que arriba). Sin email ni password — el correo no se edita acá
+// (es la identidad en auth.users) y la contraseña sigue su propio flujo
+// (/admin/vendedores/pendientes, restablecer).
+export const updateSellerSchema = z.object({
+  fullName: z.string().trim().min(1, "Requerido"),
+  storeId: z.string().trim().min(1, "Selecciona una tienda"),
+});
+
+export type UpdateSellerInput = z.infer<typeof updateSellerSchema>;
