@@ -1,21 +1,15 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { inviteSellerSchema, type InviteSellerInput } from "@/lib/validation/sellers";
+import { createSellerSchema, type CreateSellerInput } from "@/lib/validation/sellers";
 
 // Efectivamente permanente (100 años) — Supabase Auth no tiene un "ban
 // indefinido" real, solo una fecha límite muy lejana. Ver docs/PROJECT-PLAN.md:
 // "al desactivar se banea al usuario en Auth para matar su refresh token".
 const PERMANENT_BAN = "876000h";
-
-async function origin() {
-  const h = await headers();
-  return h.get("origin") ?? `https://${h.get("host")}`;
-}
 
 function friendlySellerError(message: string): string {
   if (message.includes("already provisioned")) return "Este usuario ya tiene un rol asignado.";
@@ -30,37 +24,47 @@ function friendlySellerError(message: string): string {
   return "No se pudo completar la operación.";
 }
 
-export async function inviteSeller(
-  input: InviteSellerInput,
+/**
+ * Crea la cuenta del vendedor con el correo y la contraseña que elige el
+ * admin — sin correo de invitación de por medio (Supabase Auth solo permite
+ * 2 correos/hora sin SMTP propio, ver docs/PROGRESS.md). El admin le entrega
+ * la contraseña al vendedor por fuera del sistema; nunca se guarda en
+ * ninguna tabla de esta app, solo en auth.users (hasheada por Supabase Auth),
+ * mismo principio que la aplicación de contraseña en
+ * lib/actions/registro.ts (resolvePasswordReset).
+ */
+export async function createSeller(
+  input: CreateSellerInput,
 ): Promise<{ error?: string; id?: string }> {
   const admin = await requireAdmin();
-  if (!admin) return { error: "No tienes permiso para invitar vendedores." };
+  if (!admin) return { error: "No tienes permiso para crear vendedores." };
 
-  const parsed = inviteSellerSchema.safeParse(input);
+  const parsed = createSellerSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  const { email, fullName, storeId } = parsed.data;
+  const { email, fullName, storeId, password } = parsed.data;
 
   const adminClient = createAdminClient();
-  const redirectTo = `${await origin()}/auth/callback?next=/actualizar-clave`;
 
-  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
-    redirectTo,
+  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
   });
-  if (inviteError || !invited.user) {
-    return { error: friendlySellerError(inviteError?.message ?? "") };
+  if (createError || !created.user) {
+    return { error: friendlySellerError(createError?.message ?? "") };
   }
-  const userId = invited.user.id;
+  const userId = created.user.id;
 
-  // app_metadata (no "data" de arriba, que solo llega a user_metadata — ver
-  // el comentario de la migración phase4_seller_rpc): fuente real que
-  // proxy.ts lee del JWT para enrutar a /tienda en logins futuros.
+  // app_metadata (no "user_metadata" de arriba — ver el comentario de la
+  // migración phase4_seller_rpc): fuente real que proxy.ts lee del JWT para
+  // enrutar a /tienda en logins futuros.
   const { error: metadataError } = await adminClient.auth.admin.updateUserById(userId, {
     app_metadata: { role: "seller", store_id: storeId, full_name: fullName },
   });
   if (metadataError) {
     await adminClient.auth.admin.deleteUser(userId).catch(() => {});
-    return { error: "No se pudo completar la invitación. Intenta de nuevo." };
+    return { error: "No se pudo completar el alta. Intenta de nuevo." };
   }
 
   const supabase = await createClient();

@@ -54,8 +54,8 @@ const PAGE_TARGETS: Record<string, { selector: string; description: string }> = 
     description: "Desde aquí das de alta una tienda nueva.",
   },
   "/admin/vendedores": {
-    selector: '[data-onboarding-target="invite-seller"]',
-    description: "Desde aquí invitas a un vendedor nuevo a una tienda.",
+    selector: '[data-onboarding-target="create-seller"]',
+    description: "Desde aquí das de alta un vendedor nuevo con su correo y contraseña, sin depender de un correo de invitación.",
   },
   "/admin/garantias": {
     selector: '[data-onboarding-target="warranties-list"]',

@@ -2,6 +2,51 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Alta de vendedor con contraseña elegida por el admin, sin correo de invitación (2026-09-28)
+
+Pedido explícito del usuario: el admin quiere poder crear la cuenta del vendedor con correo **y
+contraseña** desde el propio panel, sin depender del correo de invitación de Supabase Auth (que
+además tiene el límite de 2/hora del proveedor incluido, sin SMTP propio configurado — ver
+"Primer despliegue a Vercel" y la sección E2E más abajo). Toca la Fase 4 (ya "COMPLETA" en este
+documento) — se documenta acá como cambio incremental, no se reabre ese checkpoint.
+
+- `lib/actions/sellers.ts`: `inviteSeller` (usaba `auth.admin.inviteUserByEmail`) reemplazada por
+  `createSeller`, que usa `auth.admin.createUser({ email, password, email_confirm: true,
+  user_metadata: { full_name } })` — crea la cuenta ya confirmada, sin enviar ningún correo. El
+  resto del flujo no cambia: `updateUserById` fija `app_metadata` (rol/tienda, lo que `proxy.ts`
+  lee del JWT) y el RPC `admin_finalize_seller_profile` (sin cambios) activa el perfil; si
+  cualquiera de los dos pasos falla, se borra el usuario recién creado igual que antes. La
+  contraseña que escribe el admin nunca se guarda en ninguna tabla de esta app — viaja directo a
+  Supabase Auth, que la hashea y la guarda solo en `auth.users`, mismo principio ya usado en
+  `resolvePasswordReset` (`lib/actions/registro.ts`) para el restablecimiento manual.
+- `lib/validation/sellers.ts`: `inviteSellerSchema` → `createSellerSchema`, con un campo
+  `password` nuevo (mínimo 8 caracteres, mismo mínimo que `updatePasswordSchema`).
+- Frontend: `app/admin/vendedores/seller-form.tsx` agrega el campo "Contraseña" (texto visible,
+  `autoComplete="off"`, mismo patrón que el diálogo de restablecer contraseña en
+  `/admin/vendedores/pendientes`) y cambia el texto de "Invitar vendedor" a "Crear vendedor".
+  `invite-seller-dialog.tsx` renombrado a `create-seller-dialog.tsx`
+  (`InviteSellerDialog` → `CreateSellerDialog`). En `/admin/vendedores`, la columna "Invitación"
+  (Aceptada/Sin aceptar) pasa a "Acceso" (Ingresó/Nunca inició sesión) — sigue leyendo el mismo
+  RPC `admin_list_seller_invite_status` (sin cambios, sin migración nueva) por `last_sign_in_at`;
+  el estado "pending" (invitado sin aceptar) ya no puede darse porque no hay invitación de por
+  medio, así que la etiqueta ya no hablaba de "invitación". Tour de onboarding
+  (`components/admin/onboarding/onboarding-steps.ts`) actualizado con el nuevo selector/texto.
+- El admin sigue siendo responsable de entregarle la contraseña al vendedor por fuera del sistema
+  (de palabra, WhatsApp, etc.) — el sistema no se la vuelve a mostrar después de crearla. Si el
+  vendedor la pierde, sigue existiendo `/recuperar-vendedor` (sin cambios) para que el admin la
+  reemplace desde `/admin/vendedores/pendientes`.
+- Alta de ADMIN/superadmin (`/admin/administradores`, `lib/actions/admins.ts`) **no se tocó** —
+  sigue por correo de invitación, a propósito: es un evento raro entre cuentas internas, ya
+  documentado como "no vale la pena cambiarlo" cuando se decidió lo mismo para vendedores en la
+  reversión del auto-registro (ver más abajo en este documento).
+- Docs vivas actualizadas: `ARCHITECTURE.md` ("Alta de vendedor"), `SECURITY.md` (fila del
+  cliente de service role), `DATABASE.md` (`admin_finalize_seller_profile`).
+- **Sin verificar en este entorno**: `npm install` falló por política de red del contenedor
+  (`403` al descargar `xlsx` desde `cdn.sheetjs.com`, ajeno a este cambio — `node_modules` nunca
+  llegó a instalarse), así que no se pudo correr `tsc --noEmit`/`npm run lint`/`npx vitest
+  run`/`npm run build` para confirmar. Revisado a mano (tipos, imports, JSX) pero queda pendiente
+  correrlo en un entorno con `npm install` completo antes de dar la fase por cerrada.
+
 ## Ajustes: campos cortos ya no se estiran a todo el ancho (2026-09-22)
 
 Los campos numéricos de máximo 4 dígitos (duración por defecto, días de atención de tienda, días

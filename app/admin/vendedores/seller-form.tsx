@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
-import { inviteSellerSchema, type InviteSellerInput } from "@/lib/validation/sellers";
+import { createSellerSchema, type CreateSellerInput } from "@/lib/validation/sellers";
 
 type Store = { id: string; code: string; name: string };
 
@@ -17,7 +17,7 @@ export function SellerForm({
   onSuccess,
 }: {
   stores: Store[];
-  onSubmit: (values: InviteSellerInput) => Promise<{ error?: string }>;
+  onSubmit: (values: CreateSellerInput) => Promise<{ error?: string }>;
   onSuccess: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -26,18 +26,18 @@ export function SellerForm({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<InviteSellerInput>({
-    resolver: zodResolver(inviteSellerSchema),
-    defaultValues: { email: "", fullName: "", storeId: "" },
+  } = useForm<CreateSellerInput>({
+    resolver: zodResolver(createSellerSchema),
+    defaultValues: { email: "", fullName: "", storeId: "", password: "" },
   });
 
-  const onValid = (values: InviteSellerInput) => {
+  const onValid = (values: CreateSellerInput) => {
     startTransition(async () => {
       const result = await onSubmit(values);
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Invitación enviada.");
+        toast.success("Vendedor creado.");
         onSuccess();
       }
     });
@@ -55,7 +55,16 @@ export function SellerForm({
           <FieldLabel htmlFor="email">Correo</FieldLabel>
           <Input id="email" type="email" {...register("email")} />
           <FieldError errors={[errors.email]} />
-          <FieldDescription>Recibirá un correo para elegir su contraseña.</FieldDescription>
+          <FieldDescription>El vendedor inicia sesión con este correo.</FieldDescription>
+        </Field>
+        <Field data-invalid={!!errors.password}>
+          <FieldLabel htmlFor="password">Contraseña</FieldLabel>
+          <Input id="password" type="text" autoComplete="off" {...register("password")} />
+          <FieldError errors={[errors.password]} />
+          <FieldDescription>
+            Mínimo 8 caracteres. Anótala: se la vas a entregar al vendedor por fuera del sistema (no se
+            envía ningún correo).
+          </FieldDescription>
         </Field>
         <Field data-invalid={!!errors.storeId}>
           <FieldLabel htmlFor="storeId">Tienda</FieldLabel>
@@ -74,7 +83,7 @@ export function SellerForm({
           <FieldError errors={[errors.storeId]} />
         </Field>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Enviando..." : "Invitar vendedor"}
+          {isPending ? "Creando..." : "Crear vendedor"}
         </Button>
       </FieldGroup>
     </form>

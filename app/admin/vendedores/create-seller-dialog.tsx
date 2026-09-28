@@ -11,12 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { inviteSeller } from "@/lib/actions/sellers";
+import { createSeller } from "@/lib/actions/sellers";
 import { SellerForm } from "./seller-form";
 
 type Store = { id: string; code: string; name: string };
 
-export function InviteSellerDialog({ stores }: { stores: Store[] }) {
+export function CreateSellerDialog({ stores }: { stores: Store[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -27,20 +27,20 @@ export function InviteSellerDialog({ stores }: { stores: Store[] }) {
           <Button
             disabled={stores.length === 0}
             title={stores.length === 0 ? "Crea una tienda primero" : undefined}
-            data-onboarding-target="invite-seller"
+            data-onboarding-target="create-seller"
           >
             <UserPlus className="size-4" />
-            Invitar vendedor
+            Crear vendedor
           </Button>
         }
       />
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Invitar vendedor</DialogTitle>
+          <DialogTitle>Crear vendedor</DialogTitle>
         </DialogHeader>
         <SellerForm
           stores={stores}
-          onSubmit={inviteSeller}
+          onSubmit={createSeller}
           onSuccess={() => {
             setOpen(false);
             router.refresh();

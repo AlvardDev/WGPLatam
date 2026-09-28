@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { InviteSellerDialog } from "./invite-seller-dialog";
+import { CreateSellerDialog } from "./create-seller-dialog";
 import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
 
@@ -68,7 +68,7 @@ export default async function VendedoresPage({
         </div>
         <div className="flex gap-2">
           <Button variant="outline" render={<Link href="/admin/vendedores/pendientes"><UserCheck className="size-4" />Pendientes</Link>} />
-          <InviteSellerDialog stores={stores ?? []} />
+          <CreateSellerDialog stores={stores ?? []} />
         </div>
       </div>
 
@@ -96,8 +96,8 @@ export default async function VendedoresPage({
             q || tienda
               ? "Nada coincide con ese filtro."
               : (stores ?? []).length === 0
-                ? "Crea una tienda antes de invitar al primer vendedor."
-                : "Invita al primer vendedor de una tienda."
+                ? "Crea una tienda antes de dar de alta al primer vendedor."
+                : "Crea al primer vendedor de una tienda."
           }
         />
       ) : (
@@ -108,7 +108,7 @@ export default async function VendedoresPage({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Tienda</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Invitación</TableHead>
+                <TableHead>Acceso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -131,7 +131,7 @@ export default async function VendedoresPage({
                     </TableCell>
                     <TableCell>
                       <Badge variant={inviteStatus === "accepted" ? "secondary" : "outline"}>
-                        {inviteStatus === "accepted" ? "Aceptada" : inviteStatus === "pending" ? "Sin aceptar" : "—"}
+                        {inviteStatus === "accepted" ? "Ingresó" : "Nunca inició sesión"}
                       </Badge>
                     </TableCell>
                   </TableRow>
