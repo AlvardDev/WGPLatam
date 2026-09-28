@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, Store } from "lucide-react";
+import { Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CreateStoreDialog } from "./create-store-dialog";
+import { EditStoreDialog } from "./edit-store-dialog";
 
 export const metadata: Metadata = { title: "Tiendas" };
 
@@ -30,7 +31,7 @@ export default async function TiendasPage({
 
   let query = supabase
     .from("stores")
-    .select("id, code, name, country_code, timezone, is_active")
+    .select("id, code, name, address, phone, country_code, timezone, is_active")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -78,13 +79,12 @@ export default async function TiendasPage({
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-sm">{s.code}</TableCell>
                   <TableCell>
-                    <Link
-                      href={`/admin/tiendas/${s.id}`}
-                      className="inline-flex items-center gap-1.5 font-medium hover:underline"
-                    >
-                      {s.name}
-                      <Pencil className="size-3.5 text-muted-foreground" />
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium hover:underline">
+                        {s.name}
+                      </Link>
+                      <EditStoreDialog store={s} />
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{s.country_code}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{s.timezone}</TableCell>

@@ -2,6 +2,28 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Ícono de editar (modal) en /admin/tiendas (2026-09-28)
+
+Pedido explícito del usuario: editar una tienda ya funcionaba (el nombre era un link a
+`/admin/tiendas/[id]`, con el formulario completo) pero no era descubrible — sin ninguna señal
+visual de que fuera clickeable — y además pidió específicamente que fuera un **modal**, no una
+navegación a otra página.
+
+- Nuevo `edit-store-dialog.tsx` (`EditStoreDialog`) en `/admin/tiendas`: botón de solo ícono
+  (lápiz) junto al nombre en la tabla, abre un modal con el mismo `StoreForm` que ya usaba
+  `create-store-dialog.tsx` (modo `edit`), llama a `updateStore` (sin cambios,
+  `lib/actions/stores.ts`, Fase 4 — ya existía, solo le faltaba esta puerta de entrada). La
+  consulta de la lista suma `address`/`phone` (antes no se traían, hacían falta para los valores
+  por defecto del formulario).
+- La página de detalle `/admin/tiendas/[id]` (con su propio formulario de edición de página
+  completa y el toggle activar/desactivar) **no se tocó** — sigue accesible haciendo clic en el
+  nombre, ahora es una segunda forma de llegar a lo mismo, no un reemplazo.
+- Sin backend nuevo: `updateStore` ya existía y no cambió, así que este cambio es 100% frontend y
+  no depende de aplicar ninguna migración.
+- Sin verificar con `tsc`/`lint`/`vitest`/`build` en este entorno: `npm install` bloqueado por
+  política de red al descargar `xlsx` desde `cdn.sheetjs.com`, ajeno a este cambio. Revisado a
+  mano.
+
 ## Alta de vendedor con contraseña elegida por el admin, sin correo de invitación (2026-09-28)
 
 Pedido explícito del usuario: el admin quiere poder crear la cuenta del vendedor con correo **y
