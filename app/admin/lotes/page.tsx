@@ -16,6 +16,8 @@ import { CreateLotDialog } from "./create-lot-dialog";
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/page-header";
 import { formatDuration } from "@/lib/format";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Lotes" };
 
@@ -37,9 +39,11 @@ type LotRow = {
 export default async function LotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ producto?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { producto } = await searchParams;
+  const sp = await searchParams;
+  const producto = typeof sp.producto === "string" ? sp.producto : undefined;
+  const lp = listParams(sp, { reciente: "created_at", codigo: "code", garantia: "warranty_days", seriales: "imported_count", estado: "is_active" }, { key: "reciente", asc: false });
   const supabase = await createClient();
 
   const { data: products, error: productsError } = await supabase
@@ -51,13 +55,14 @@ export default async function LotesPage({
 
   let query = supabase
     .from("lots")
-    .select("id, code, warranty_days, expected_count, imported_count, is_active, product_id, products(name, code)")
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .select("id, code, warranty_days, expected_count, imported_count, is_active, product_id, products(name, code)", { count: "exact" })
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to);
   if (producto) query = query.eq("product_id", producto);
 
-  const { data: lots, error } = await query.returns<LotRow[]>();
-  if (error) throw new Error("No se pudieron cargar los lotes.");
+  const { data: lots, count: total, error } = await query.returns<LotRow[]>();
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los lotes.");
 
   return (
     <div className="space-y-6">
@@ -89,28 +94,28 @@ export default async function LotesPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
+                <SortableHead label="Código" sortKey="codigo" current={lp} basePath="/admin/lotes" searchParams={sp} />
                 <TableHead>Producto</TableHead>
-                <TableHead>Garantía</TableHead>
-                <TableHead>Seriales</TableHead>
-                <TableHead>Estado</TableHead>
+                <SortableHead label="Garantía" sortKey="garantia" current={lp} basePath="/admin/lotes" searchParams={sp} />
+                <SortableHead label="Seriales" sortKey="seriales" current={lp} basePath="/admin/lotes" searchParams={sp} />
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/lotes" searchParams={sp} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {lots.map((l) => (
                 <TableRow key={l.id}>
-                  <TableCell>
+                  <TableCell data-label="Código">
                     <Link href={`/admin/lotes/${l.id}`} className="row-link font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {l.code}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm">{l.products?.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDuration(l.warranty_days)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Producto" className="text-sm">{l.products?.name}</TableCell>
+                  <TableCell data-label="Garantía" className="text-sm text-muted-foreground">{formatDuration(l.warranty_days)}</TableCell>
+                  <TableCell data-label="Seriales" className="text-sm text-muted-foreground">
                     {l.imported_count}
                     {l.expected_count ? ` / ${l.expected_count}` : ""}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Estado">
                     <Badge variant={l.is_active ? "success" : "danger"}>
                       {l.is_active ? "Activo" : "Inactivo"}
                     </Badge>
@@ -121,6 +126,7 @@ export default async function LotesPage({
           </Table>
         </div>
       )}
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/lotes" searchParams={sp} />
     </div>
   );
 }

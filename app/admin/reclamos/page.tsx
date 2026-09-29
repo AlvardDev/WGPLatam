@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/page-header";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Reclamos" };
 
@@ -43,16 +45,19 @@ type ClaimListRow = {
   stores: { name: string; code: string } | null;
 };
 
-export default async function ReclamosPage() {
+export default async function ReclamosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams;
+  const lp = listParams(sp, { abierto: "created_at", motivo: "reason", responsable: "responsible_party", estado: "status" }, { key: "abierto", asc: false });
   const supabase = await createClient();
-  const { data: claims, error } = await supabase
+  const { data: claims, count: total, error } = await supabase
     .from("warranty_claims")
-    .select("id, reason, status, responsible_party, created_at, warranties(product_name, serial), stores(name, code)")
-    .order("created_at", { ascending: false })
-    .limit(100)
+    .select("id, reason, status, responsible_party, created_at, warranties(product_name, serial), stores(name, code)", { count: "exact" })
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to)
     .returns<ClaimListRow[]>();
 
-  if (error) throw new Error("No se pudieron cargar los reclamos.");
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los reclamos.");
 
   return (
     <div className="space-y-6">
@@ -66,35 +71,35 @@ export default async function ReclamosPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Motivo</TableHead>
+                <SortableHead label="Motivo" sortKey="motivo" current={lp} basePath="/admin/reclamos" searchParams={sp} />
                 <TableHead>Garantía</TableHead>
                 <TableHead>Tienda</TableHead>
-                <TableHead>Responsable</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Abierto</TableHead>
+                <SortableHead label="Responsable" sortKey="responsable" current={lp} basePath="/admin/reclamos" searchParams={sp} />
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/reclamos" searchParams={sp} />
+                <SortableHead label="Abierto" sortKey="abierto" current={lp} basePath="/admin/reclamos" searchParams={sp} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {claims.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell>
+                  <TableCell data-label="Motivo">
                     <Link href={`/admin/reclamos/${c.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {c.reason}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Garantía" className="text-sm text-muted-foreground">
                     {c.warranties ? `${c.warranties.product_name} · ${c.warranties.serial}` : "—"}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Tienda" className="text-sm text-muted-foreground">
                     {c.stores ? `${c.stores.name} (${c.stores.code})` : "—"}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Responsable" className="text-sm text-muted-foreground">
                     {c.responsible_party === "STORE" ? "Tienda" : "Fabricante"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Estado">
                     <Badge variant={STATUS_VARIANT[c.status] ?? "secondary"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Abierto" className="text-sm text-muted-foreground">
                     <span title={formatDateTime(c.created_at)}>{timeAgo(c.created_at)}</span>
                   </TableCell>
                 </TableRow>
@@ -104,6 +109,7 @@ export default async function ReclamosPage() {
         </div>
       )}
       </div>
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/reclamos" searchParams={sp} />
     </div>
   );
 }

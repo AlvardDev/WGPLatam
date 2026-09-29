@@ -14,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/page-header";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Importaciones" };
 
@@ -46,16 +48,19 @@ type ImportRow = {
   lots: { code: string; products: { name: string } | null } | null;
 };
 
-export default async function ImportacionesPage() {
+export default async function ImportacionesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams;
+  const lp = listParams(sp, { creada: "created_at", archivo: "file_name", progreso: "committed_rows", estado: "status" }, { key: "creada", asc: false });
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data, count: total, error } = await supabase
     .from("serial_imports")
-    .select("id, file_name, status, total_rows, valid_rows, committed_rows, created_at, lots(code, products(name))")
-    .order("created_at", { ascending: false })
-    .limit(100)
+    .select("id, file_name, status, total_rows, valid_rows, committed_rows, created_at, lots(code, products(name))", { count: "exact" })
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to)
     .returns<ImportRow[]>();
-  if (error) throw new Error("No se pudieron cargar las importaciones.");
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar las importaciones.");
 
   return (
     <div className="space-y-6">
@@ -82,31 +87,31 @@ export default async function ImportacionesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Archivo</TableHead>
+                <SortableHead label="Archivo" sortKey="archivo" current={lp} basePath="/admin/importaciones" searchParams={sp} />
                 <TableHead>Lote</TableHead>
-                <TableHead>Progreso</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Creada</TableHead>
+                <SortableHead label="Progreso" sortKey="progreso" current={lp} basePath="/admin/importaciones" searchParams={sp} />
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/importaciones" searchParams={sp} />
+                <SortableHead label="Creada" sortKey="creada" current={lp} basePath="/admin/importaciones" searchParams={sp} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((imp) => (
                 <TableRow key={imp.id}>
-                  <TableCell>
+                  <TableCell data-label="Archivo">
                     <Link href={`/admin/importaciones/${imp.id}`} className="row-link text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {imp.file_name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Lote" className="text-sm text-muted-foreground">
                     {imp.lots?.products?.name} · <span className="font-mono">{imp.lots?.code}</span>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Progreso" className="text-sm text-muted-foreground">
                     {imp.committed_rows} / {imp.total_rows || "?"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Estado">
                     <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{STATUS_LABEL[imp.status] ?? imp.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Creada" className="text-sm text-muted-foreground">
                     {new Date(imp.created_at).toLocaleString("es")}
                   </TableCell>
                 </TableRow>
@@ -115,6 +120,7 @@ export default async function ImportacionesPage() {
           </Table>
         </div>
       )}
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/importaciones" searchParams={sp} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Activar garantía" };
 export default function ActivarPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
-      <PageHeader title="Activar garantía" description="Busca el serial o código de barras del producto." />
+      <PageHeader title="Activar garantía" description="Escanea o escribe el código del producto y completa los datos del cliente." />
       <ActivationFlow />
     </div>
   );

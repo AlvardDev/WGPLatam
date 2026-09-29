@@ -45,13 +45,13 @@ export default async function VendedoresPendientesPage() {
               <TableBody>
                 {resets.data.map((r) => (
                   <TableRow key={r.requestId}>
-                    <TableCell className="font-medium">{r.fullName}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.storeName ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell data-label="Nombre" className="font-medium">{r.fullName}</TableCell>
+                    <TableCell data-label="Correo" className="text-sm text-muted-foreground">{r.email}</TableCell>
+                    <TableCell data-label="Tienda" className="text-sm text-muted-foreground">{r.storeName ?? "—"}</TableCell>
+                    <TableCell data-label="Solicitado" className="text-sm text-muted-foreground">
                       <span title={formatDateTime(r.requestedAt)}>{timeAgo(r.requestedAt)}</span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell data-label="" className="text-right">
                       <ResetActions requestId={r.requestId} userId={r.userId} />
                     </TableCell>
                   </TableRow>

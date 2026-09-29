@@ -62,17 +62,17 @@ export default async function TiendaPage() {
             <TableBody>
               {warranties.map((w) => (
                 <TableRow key={w.id}>
-                  <TableCell>
+                  <TableCell data-label="Producto">
                     <Link href={`/tienda/garantias/${w.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{w.serial}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{w.customer_name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Serial" className="font-mono text-sm">{w.serial}</TableCell>
+                  <TableCell data-label="Cliente" className="text-sm text-muted-foreground">{w.customer_name}</TableCell>
+                  <TableCell data-label="Activada" className="text-sm text-muted-foreground">
                     <span title={formatDateTime(w.activated_at)}>{timeAgo(w.activated_at)}</span>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Vence" className="text-sm text-muted-foreground">
                     <ExpiryCell expiresAt={w.expires_at} voidedAt={w.voided_at} />
                   </TableCell>
                 </TableRow>

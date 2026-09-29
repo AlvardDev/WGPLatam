@@ -2288,3 +2288,22 @@ timestamp de aplicación (no el del nombre de archivo).
   `16_delete_serial.sql`.
 - Verificado: `tsc` OK, vitest 105/105, `next build` OK, lint sin errores nuevos. Sin revisión visual
   en navegador (extensión de Chrome desconectada; admin requiere sesión + MFA).
+
+## Nota 2026-09-29 (2): tablas en celular, paginación/orden, activación en tienda
+
+- **Productos**: miniatura de la foto en la lista; sin foto, placeholder con ícono de caja.
+- **Tablas en celular** (`components/ui/table.tsx`, `max-md:`): cada fila se ve como tarjeta de 2
+  columnas con la etiqueta de cada dato (`data-label` en cada celda, sacada del encabezado); la celda
+  con el enlace principal va arriba y a lo ancho. Sin duplicar markup por página.
+- **Paginación + orden por columna** en productos, lotes, tiendas, vendedores, administradores,
+  garantías, reclamos e importaciones (`lib/list-params.ts` con lista blanca de columnas + test,
+  `components/ui/list-controls.tsx`). 25 por página, `?pagina=&orden=&dir=` en la URL (se puede
+  compartir/recargar). Solo columnas propias de la tabla (PostgREST no ordena el padre por una
+  columna embebida). Seriales y auditoría mantienen su paginación por cursor (volumen alto).
+  Página fuera de rango (PGRST103) = lista vacía, no error.
+- **Activar garantía (tienda)**: pasos 1 Buscar → 2 Cliente → 3 Listo, botón grande de escanear,
+  tarjeta del producto con duración, formulario con campos grandes (teclado de teléfono para
+  WhatsApp), y al activar un aviso grande en el centro con check animado (+ vibración en celular)
+  que se cierra solo; después, resumen con "Descargar comprobante" y "Activar otra".
+- Verificado: `tsc` OK, vitest 109/109, `next build` OK, lint sin errores nuevos. Sin revisión
+  visual en navegador.

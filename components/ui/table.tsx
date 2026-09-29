@@ -11,7 +11,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm tabular-nums", className)}
+        className={cn("w-full caption-bottom text-sm tabular-nums max-md:block", className)}
         {...props}
       />
     </div>
@@ -22,7 +22,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-muted/60 [&_tr]:border-0 [&_tr]:hover:bg-transparent", className)}
+      className={cn("bg-muted/60 max-md:hidden [&_tr]:border-0 [&_tr]:hover:bg-transparent", className)}
       {...props}
     />
   )
@@ -32,7 +32,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
+      className={cn("max-md:block [&_tr:last-child]:border-0", className)}
       {...props}
     />
   )
@@ -56,7 +56,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "relative border-b border-border/60 transition-colors hover:bg-muted/50 has-[.row-link]:cursor-pointer has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "relative border-b border-border/60 transition-colors hover:bg-muted/50 has-[.row-link]:cursor-pointer max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:px-4 max-md:py-4 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
         className
       )}
       {...props}
@@ -82,7 +82,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-4 py-3 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-4 py-3 align-middle whitespace-nowrap max-md:min-w-0 max-md:p-0 max-md:text-left max-md:whitespace-normal max-md:before:mb-1 max-md:before:block max-md:before:text-[11px] max-md:before:font-semibold max-md:before:tracking-wide max-md:before:text-muted-foreground max-md:before:uppercase max-md:before:content-[attr(data-label)] max-md:has-[.row-link]:order-first max-md:has-[.row-link]:col-span-2 max-md:has-[.row-link]:text-base max-md:has-[.row-link]:before:hidden max-md:[&[data-label='']]:before:hidden [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

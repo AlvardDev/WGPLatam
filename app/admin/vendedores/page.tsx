@@ -20,6 +20,8 @@ import { UserCheck } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Vendedores" };
 
@@ -34,9 +36,12 @@ type SellerRow = {
 export default async function VendedoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tienda?: string; q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { tienda, q } = await searchParams;
+  const sp = await searchParams;
+  const tienda = typeof sp.tienda === "string" ? sp.tienda : undefined;
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const lp = listParams(sp, { reciente: "created_at", nombre: "full_name", estado: "is_active" }, { key: "reciente", asc: false });
   const supabase = await createClient();
 
   const { data: stores, error: storesError } = await supabase
@@ -48,15 +53,16 @@ export default async function VendedoresPage({
 
   let query = supabase
     .from("profiles")
-    .select("id, full_name, is_active, store_id, stores(name, code)")
+    .select("id, full_name, is_active, store_id, stores(name, code)", { count: "exact" })
     .eq("role", "seller")
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to);
   if (tienda) query = query.eq("store_id", tienda);
   if (q) query = query.ilike("full_name", `%${q}%`);
 
-  const { data: sellers, error } = await query.returns<SellerRow[]>();
-  if (error) throw new Error("No se pudieron cargar los vendedores.");
+  const { data: sellers, count: total, error } = await query.returns<SellerRow[]>();
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los vendedores.");
 
   const { data: inviteStatuses } = await supabase.rpc("admin_list_seller_invite_status");
   const inviteStatusById = new Map(
@@ -106,9 +112,9 @@ export default async function VendedoresPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
+                <SortableHead label="Nombre" sortKey="nombre" current={lp} basePath="/admin/vendedores" searchParams={sp} />
                 <TableHead>Tienda</TableHead>
-                <TableHead>Estado</TableHead>
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/vendedores" searchParams={sp} />
                 <TableHead>Acceso</TableHead>
               </TableRow>
             </TableHeader>
@@ -117,7 +123,7 @@ export default async function VendedoresPage({
                 const inviteStatus = inviteStatusById.get(s.id);
                 return (
                   <TableRow key={s.id}>
-                    <TableCell>
+                    <TableCell data-label="Nombre">
                       <div className="flex items-center gap-2.5">
                         <UserAvatar name={s.full_name} />
                         <Link href={`/admin/vendedores/${s.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
@@ -126,15 +132,15 @@ export default async function VendedoresPage({
                         <EditSellerDialog seller={s} stores={stores ?? []} />
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell data-label="Tienda" className="text-sm text-muted-foreground">
                       {s.stores ? `${s.stores.name} (${s.stores.code})` : "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Estado">
                       <Badge variant={s.is_active ? "success" : "danger"}>
                         {s.is_active ? "Activo" : "Desactivado"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Acceso">
                       <Badge variant={inviteStatus === "accepted" ? "info" : "warning"}>
                         {inviteStatus === "accepted" ? "Ingresó" : "Nunca inició sesión"}
                       </Badge>
@@ -146,6 +152,7 @@ export default async function VendedoresPage({
           </Table>
         </div>
       )}
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/vendedores" searchParams={sp} />
     </div>
   );
 }

@@ -10,13 +10,14 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { InviteAdminDialog } from "./invite-admin-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Administradores" };
 
@@ -25,9 +26,11 @@ type AdminRow = { id: string; full_name: string; is_active: boolean };
 export default async function AdministradoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { q } = await searchParams;
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const lp = listParams(sp, { reciente: "created_at", nombre: "full_name", estado: "is_active" }, { key: "reciente", asc: false });
   const supabase = await createClient();
 
   // Página exclusiva de superadmin: un admin normal puede leer /admin/* por
@@ -46,14 +49,15 @@ export default async function AdministradoresPage({
 
   let query = supabase
     .from("profiles")
-    .select("id, full_name, is_active")
+    .select("id, full_name, is_active", { count: "exact" })
     .eq("role", "admin")
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to);
   if (q) query = query.ilike("full_name", `%${q}%`);
 
-  const { data: admins, error } = await query.returns<AdminRow[]>();
-  if (error) throw new Error("No se pudieron cargar los administradores.");
+  const { data: admins, count: total, error } = await query.returns<AdminRow[]>();
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los administradores.");
 
   return (
     <div className="space-y-6">
@@ -79,14 +83,14 @@ export default async function AdministradoresPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Estado</TableHead>
+                <SortableHead label="Nombre" sortKey="nombre" current={lp} basePath="/admin/administradores" searchParams={sp} />
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/administradores" searchParams={sp} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {admins.map((a) => (
                 <TableRow key={a.id}>
-                  <TableCell>
+                  <TableCell data-label="Nombre">
                     <div className="flex items-center gap-2.5">
                       <UserAvatar name={a.full_name} />
                       <Link href={`/admin/administradores/${a.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
@@ -94,7 +98,7 @@ export default async function AdministradoresPage({
                       </Link>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Estado">
                     <Badge variant={a.is_active ? "success" : "danger"}>
                       {a.is_active ? "Activo" : "Desactivado"}
                     </Badge>
@@ -105,6 +109,7 @@ export default async function AdministradoresPage({
           </Table>
         </div>
       )}
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/administradores" searchParams={sp} />
     </div>
   );
 }

@@ -131,7 +131,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
           <TableBody>
             {serials.map((s) => (
               <TableRow key={s.id}>
-                <TableCell>
+                <TableCell data-label="">
                   <input
                     type="checkbox"
                     checked={selected.has(s.id)}
@@ -140,27 +140,27 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                     className="size-4 rounded border-input"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell data-label="Serial">
                   <Link href={`/admin/seriales/${s.id}`} className="row-link font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                     {s.serial}
                   </Link>
                 </TableCell>
-                <TableCell className="font-mono text-sm text-muted-foreground">{s.barcode ?? "—"}</TableCell>
-                <TableCell className="text-sm">{s.products?.name}</TableCell>
-                <TableCell className="font-mono text-sm text-muted-foreground">{s.lots?.code}</TableCell>
-                <TableCell>
+                <TableCell data-label="Código de barras" className="font-mono text-sm text-muted-foreground">{s.barcode ?? "—"}</TableCell>
+                <TableCell data-label="Producto" className="text-sm">{s.products?.name}</TableCell>
+                <TableCell data-label="Lote" className="font-mono text-sm text-muted-foreground">{s.lots?.code}</TableCell>
+                <TableCell data-label="Estado">
                   <Badge variant={STATUS_VARIANT[s.status] ?? "outline"}>
                     {STATUS_LABEL[s.status] ?? s.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell data-label="Garantía" className="text-sm text-muted-foreground">
                   {s.warranty ? formatDuration(s.warranty.duration_days) : "—"}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{s.warranty?.customer_name ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell data-label="Cliente" className="text-sm text-muted-foreground">{s.warranty?.customer_name ?? "—"}</TableCell>
+                <TableCell data-label="Fecha registro" className="text-sm text-muted-foreground">
                   {formatDate(s.created_at)}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell data-label="" className="text-right">
                   <Button variant="ghost" size="icon" render={<Link href={`/admin/seriales/${s.id}`} aria-label="Ver detalle" />}>
                     <Eye className="size-4" />
                   </Button>

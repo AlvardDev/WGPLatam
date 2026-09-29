@@ -255,10 +255,10 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
                 <TableBody>
                   {errorRows.map((r) => (
                     <TableRow key={r.row_number}>
-                      <TableCell className="text-sm text-muted-foreground">{r.row_number}</TableCell>
-                      <TableCell className="font-mono text-sm">{r.serial}</TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">{r.barcode}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.status} · {r.error_code}</TableCell>
+                      <TableCell data-label="Fila" className="text-sm text-muted-foreground">{r.row_number}</TableCell>
+                      <TableCell data-label="Serial" className="font-mono text-sm">{r.serial}</TableCell>
+                      <TableCell data-label="Código de barras" className="font-mono text-sm text-muted-foreground">{r.barcode}</TableCell>
+                      <TableCell data-label="Motivo" className="text-sm text-muted-foreground">{r.status} · {r.error_code}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

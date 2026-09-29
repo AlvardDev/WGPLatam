@@ -18,6 +18,8 @@ import { CreateProductDialog } from "./create-product-dialog";
 import { productPhotoUrl } from "@/lib/image/product-photos";
 import { PageHeader } from "@/components/layout/page-header";
 import { formatDuration } from "@/lib/format";
+import { listParams, type SearchParams } from "@/lib/list-params";
+import { Pagination, SortableHead } from "@/components/ui/list-controls";
 
 export const metadata: Metadata = { title: "Productos" };
 
@@ -28,23 +30,26 @@ export const metadata: Metadata = { title: "Productos" };
 export default async function ProductosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { q } = await searchParams;
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const lp = listParams(sp, { reciente: "created_at", codigo: "code", nombre: "name", garantia: "default_warranty_days", estado: "is_active" }, { key: "reciente", asc: false });
   const supabase = await createClient();
 
   let query = supabase
     .from("products")
-    .select("id, code, name, default_warranty_days, is_active, photo_path")
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .select("id, code, name, default_warranty_days, is_active, photo_path", { count: "exact" })
+    .order(lp.column, { ascending: lp.asc })
+    .range(lp.from, lp.to);
 
   if (q) {
     query = query.or(`name.ilike.%${q}%,code.ilike.%${q}%`);
   }
 
-  const { data: products, error } = await query;
-  if (error) throw new Error("No se pudieron cargar los productos.");
+  const { data: products, count: total, error } = await query;
+  // PGRST103: página fuera de rango (URL editada a mano) → lista vacía, no error.
+  if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los productos.");
 
   return (
     <div className="space-y-6">
@@ -70,10 +75,10 @@ export default async function ProductosPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Garantía</TableHead>
-                <TableHead>Estado</TableHead>
+                <SortableHead label="Código" sortKey="codigo" current={lp} basePath="/admin/productos" searchParams={sp} />
+                <SortableHead label="Nombre" sortKey="nombre" current={lp} basePath="/admin/productos" searchParams={sp} />
+                <SortableHead label="Garantía" sortKey="garantia" current={lp} basePath="/admin/productos" searchParams={sp} />
+                <SortableHead label="Estado" sortKey="estado" current={lp} basePath="/admin/productos" searchParams={sp} />
                 <TableHead className="w-12">
                   <span className="sr-only">Acciones</span>
                 </TableHead>
@@ -82,32 +87,38 @@ export default async function ProductosPage({
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono text-sm">{p.code}</TableCell>
-                  <TableCell>
+                  <TableCell data-label="Código" className="font-mono text-sm">{p.code}</TableCell>
+                  <TableCell data-label="Nombre">
                     <div className="flex items-center gap-2.5">
-                      {/* Miniatura solo si hay foto: sin placeholder vacío. */}
                       {p.photo_path ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={productPhotoUrl(p.photo_path)}
                           alt=""
-                          className="size-8 rounded-lg object-cover"
+                          className="size-10 shrink-0 rounded-xl object-cover shadow-sm"
                         />
-                      ) : null}
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400 dark:from-slate-800 dark:to-slate-900 dark:text-slate-500"
+                        >
+                          <Package className="size-5" />
+                        </span>
+                      )}
                       <Link href={`/admin/productos/${p.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                         {p.name}
                       </Link>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell data-label="Garantía" className="text-sm text-muted-foreground">
                     {formatDuration(p.default_warranty_days)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Estado">
                     <Badge variant={p.is_active ? "success" : "danger"}>
                       {p.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell data-label="" className="text-right">
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -123,6 +134,7 @@ export default async function ProductosPage({
           </Table>
         </div>
       )}
+      <Pagination page={lp.page} total={total ?? 0} basePath="/admin/productos" searchParams={sp} />
     </div>
   );
 }

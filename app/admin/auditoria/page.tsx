@@ -224,10 +224,10 @@ export default async function AuditoriaPage({
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                    <TableCell data-label="Fecha" className="whitespace-nowrap text-sm text-muted-foreground">
                       {new Date(log.occurred_at).toLocaleString("es")}
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Usuario">
                       <div className="flex items-center gap-2">
                         <UserAvatar
                           name={log.actor_id ? (actorNames.get(log.actor_id) ?? "?") : "Sistema"}
@@ -241,18 +241,18 @@ export default async function AuditoriaPage({
                         ) : null}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="Acción">
                       <Badge variant={ACTION_VARIANT[log.action] ?? "outline"}>
                         {ACTION_LABEL[log.action] ?? log.action}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell data-label="Módulo" className="text-sm">
                       <span className="font-medium">{ENTITY_LABEL[log.entity_type] ?? log.entity_type}</span>
                       {log.entity_type !== "auth" && recordName(log.new_data ?? log.old_data) ? (
                         <span className="text-muted-foreground"> · {recordName(log.new_data ?? log.old_data)}</span>
                       ) : null}
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-label="">
                       <AuditDetailDialog
                         oldData={log.old_data}
                         newData={log.new_data}
