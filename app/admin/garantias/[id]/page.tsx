@@ -68,7 +68,7 @@ export default async function GarantiaAdminDetallePage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-blue-900">{warranty.product_name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{warranty.product_name}</h1>
             {warranty.voided_at && <Badge variant="danger">Anulada</Badge>}
           </div>
           <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
@@ -160,7 +160,7 @@ export default async function GarantiaAdminDetallePage({
             <ClaimHistory
               claims={claims}
               linkToDetail={(c) => (
-                <Link href={`/admin/reclamos/${c.id}`} className="text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
+                <Link href={`/admin/reclamos/${c.id}`} className="text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                   Ver reclamo →
                 </Link>
               )}

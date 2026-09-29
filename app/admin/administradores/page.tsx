@@ -57,7 +57,7 @@ export default async function AdministradoresPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Administradores</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Administradores</h1>
           <p className="text-sm text-muted-foreground">Cuentas admin del cliente dueño del negocio.</p>
         </div>
         <InviteAdminDialog />
@@ -86,7 +86,7 @@ export default async function AdministradoresPage({
               {admins.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>
-                    <Link href={`/admin/administradores/${a.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/admin/administradores/${a.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {a.full_name}
                     </Link>
                   </TableCell>

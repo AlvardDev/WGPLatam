@@ -140,7 +140,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                   />
                 </TableCell>
                 <TableCell>
-                  <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
+                  <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                     {s.serial}
                   </Link>
                 </TableCell>

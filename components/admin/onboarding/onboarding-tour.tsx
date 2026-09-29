@@ -137,7 +137,7 @@ export function OnboardingProvider({
         >
           {phase === "welcome" ? (
             <div className="flex flex-col items-center gap-4 py-2 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+              <span className="flex size-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <ShieldCheck className="size-7" />
               </span>
               <div className="space-y-1.5">
@@ -188,7 +188,7 @@ export function OnboardingProvider({
               className="flex flex-col gap-4 py-1 duration-200 animate-in fade-in slide-in-from-bottom-1"
             >
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <current.icon className="size-5" />
                 </span>
                 <div>

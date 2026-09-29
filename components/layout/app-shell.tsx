@@ -8,6 +8,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { UserMenu } from "@/components/layout/user-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { adminNav, sellerNav, superadminNav, type NavItem } from "@/components/layout/nav-items";
 
 const ROLE_LABEL = { admin: "Administrador", seller: "Vendedor", superadmin: "Superadmin" } as const;
@@ -95,10 +96,13 @@ export function AppShell({
             ) : null}
           </div>
 
-          <UserMenu fullName={fullName} roleLabel={ROLE_LABEL[role]} />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu fullName={fullName} roleLabel={ROLE_LABEL[role]} />
+          </div>
         </header>
 
-        <main className="flex-1 bg-slate-50 p-4 md:p-6">{children}</main>
+        <main className="flex-1 bg-slate-50 dark:bg-background p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { CreateSellerDialog } from "./create-seller-dialog";
 import { EditSellerDialog } from "./edit-seller-dialog";
 import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
+import { Select } from "@/components/ui/select";
 
 export const metadata: Metadata = { title: "Vendedores" };
 
@@ -64,7 +65,7 @@ export default async function VendedoresPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Vendedores</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Vendedores</h1>
           <p className="text-sm text-muted-foreground">Cuentas de tienda que pueden activar garantías.</p>
         </div>
         <div className="flex gap-2">
@@ -75,18 +76,14 @@ export default async function VendedoresPage({
 
       <form className="flex max-w-lg flex-wrap items-center gap-2">
         <Input type="search" name="q" placeholder="Buscar por nombre..." defaultValue={q ?? ""} className="max-w-xs" />
-        <select
+        <Select
           name="tienda"
+          aria-label="Tienda"
           defaultValue={tienda ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todas las tiendas</option>
-          {(stores ?? []).map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} ({s.code})
-            </option>
-          ))}
-        </select>
+          placeholder="Todas las tiendas"
+          options={(stores ?? []).map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }))}
+          className="w-56"
+        />
       </form>
 
       {!sellers || sellers.length === 0 ? (
@@ -119,7 +116,7 @@ export default async function VendedoresPage({
                   <TableRow key={s.id}>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                           {s.full_name}
                         </Link>
                         <EditSellerDialog seller={s} stores={stores ?? []} />

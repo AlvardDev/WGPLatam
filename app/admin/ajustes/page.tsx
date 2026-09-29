@@ -31,7 +31,7 @@ export default async function AjustesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Ajustes</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Ajustes</h1>
         <p className="text-sm text-muted-foreground">
           Configuración pública del negocio: empresa, garantías, sistema y soporte.
         </p>

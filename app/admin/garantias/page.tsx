@@ -46,7 +46,7 @@ export default async function GarantiasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Garantías</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Garantías</h1>
         <p className="text-sm text-muted-foreground">Últimas 100 activaciones, de todas las tiendas.</p>
       </div>
 
@@ -70,7 +70,7 @@ export default async function GarantiasPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/admin/garantias/${w.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/admin/garantias/${w.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
                     {w.voided_at && (

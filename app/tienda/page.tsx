@@ -62,7 +62,7 @@ export default async function TiendaPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/tienda/garantias/${w.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/tienda/garantias/${w.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
                   </TableCell>

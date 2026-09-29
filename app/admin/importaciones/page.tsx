@@ -60,7 +60,7 @@ export default async function ImportacionesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Importaciones</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Importaciones</h1>
           <p className="text-sm text-muted-foreground">Carga masiva de seriales por archivo CSV o Excel.</p>
         </div>
         <Button
@@ -91,7 +91,7 @@ export default async function ImportacionesPage() {
               {data.map((imp) => (
                 <TableRow key={imp.id}>
                   <TableCell>
-                    <Link href={`/admin/importaciones/${imp.id}`} className="text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/admin/importaciones/${imp.id}`} className="text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {imp.file_name}
                     </Link>
                   </TableCell>

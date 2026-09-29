@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { createSerialAction } from "@/lib/actions/serials";
 import { createSerialSchema, type CreateSerialInput } from "@/lib/validation/serials";
+import { Select } from "@/components/ui/select";
 
 type Product = { id: string; code: string; name: string };
 type Lot = { id: string; code: string; product_id: string };
@@ -119,37 +120,41 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
               <FieldGroup>
                 <Field data-invalid={!!errors.productId}>
                   <FieldLabel htmlFor="productId">Producto</FieldLabel>
-                  <select
-                    id="productId"
-                    className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                    {...register("productId")}
-                  >
-                    <option value="">Selecciona un producto</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.code})
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={control}
+                    name="productId"
+                    render={({ field }) => (
+                      <Select
+                        id="productId"
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!errors.productId}
+                        placeholder="Selecciona un producto"
+                        options={products.map((p) => ({ value: p.id, label: `${p.name} (${p.code})` }))}
+                      />
+                    )}
+                  />
                   <FieldError errors={[errors.productId]} />
                 </Field>
                 <Field data-invalid={!!errors.lotId}>
                   <FieldLabel htmlFor="lotId">Lote</FieldLabel>
-                  <select
-                    id="lotId"
-                    disabled={!selectedProductId}
-                    className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                    {...register("lotId")}
-                  >
-                    <option value="">
-                      {selectedProductId ? "Selecciona un lote" : "Elige primero un producto"}
-                    </option>
-                    {availableLots.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.code}
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={control}
+                    name="lotId"
+                    render={({ field }) => (
+                      <Select
+                        id="lotId"
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        onBlur={field.onBlur}
+                        disabled={!selectedProductId}
+                        invalid={!!errors.lotId}
+                        placeholder={selectedProductId ? "Selecciona un lote" : "Elige primero un producto"}
+                        options={availableLots.map((l) => ({ value: l.id, label: l.code }))}
+                      />
+                    )}
+                  />
                   <FieldError errors={[errors.lotId]} />
                 </Field>
                 <Field data-invalid={!!errors.serial}>

@@ -108,7 +108,7 @@ export function MfaGate() {
   if (mode === "loading") {
     return (
       <AuthShell title="Verificando...">
-        <p className="text-sm text-slate-500">Un momento por favor.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Un momento por favor.</p>
       </AuthShell>
     );
   }

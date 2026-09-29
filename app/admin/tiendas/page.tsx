@@ -46,7 +46,7 @@ export default async function TiendasPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Tiendas</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Tiendas</h1>
           <p className="text-sm text-muted-foreground">Ubicaciones donde se activan garantías.</p>
         </div>
         <CreateStoreDialog />
@@ -80,7 +80,7 @@ export default async function TiendasPage({
                   <TableCell className="font-mono text-sm">{s.code}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                         {s.name}
                       </Link>
                       <EditStoreDialog store={s} />

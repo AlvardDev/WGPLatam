@@ -60,7 +60,7 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900">{serial.serial}</h1>
+          <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{serial.serial}</h1>
           <Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{STATUS_LABEL[serial.status] ?? serial.status}</Badge>
         </div>
         <SerialActions

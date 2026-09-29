@@ -146,11 +146,11 @@ export function OnboardingSpotlight({
         }}
       />
       <div
-        className="fixed z-[62] w-72 rounded-xl bg-white p-4 text-sm shadow-2xl ring-1 ring-black/10 duration-200 animate-in fade-in slide-in-from-left-2"
+        className="fixed z-[62] w-72 rounded-xl bg-white dark:bg-card p-4 text-sm shadow-2xl ring-1 ring-black/10 duration-200 animate-in fade-in slide-in-from-left-2"
         style={{ top: tooltipTop, left: tooltipLeft }}
       >
         <div className="flex items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
             <Icon className="size-4" />
           </span>
           <div>

@@ -102,7 +102,7 @@ export function ImportResume({ importId, status }: { importId: string; status: s
           {commitProgress.committed} creados, {commitProgress.conflicted} en conflicto...
         </p>
       )}
-      {done && <p className="text-sm text-emerald-600">Importación completada.</p>}
+      {done && <p className="text-sm text-emerald-600 dark:text-emerald-400">Importación completada.</p>}
       <Button type="button" onClick={onResumeCommit} disabled={busy || done}>
         Reanudar confirmación
       </Button>

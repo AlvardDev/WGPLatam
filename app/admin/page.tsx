@@ -30,9 +30,9 @@ function monthRange(monthsAgo: number) {
 }
 
 const WARRANTY_STATUS_BADGE: Record<string, string> = {
-  Activa: "bg-emerald-100 text-emerald-700",
-  Vencida: "bg-red-100 text-red-700",
-  Anulada: "bg-slate-200 text-slate-600",
+  Activa: "bg-emerald-100 text-emerald-700 dark:text-emerald-300",
+  Vencida: "bg-red-100 text-red-700 dark:text-red-300",
+  Anulada: "bg-slate-200 text-slate-600 dark:text-slate-400",
 };
 
 // KPIs reales, Fase 9 (docs/PROJECT-PLAN.md, fila 9 — "dashboard admin" era
@@ -247,12 +247,12 @@ export default async function AdminPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">
             ¡Bienvenido, {profile?.full_name ?? "Administrador"}!
           </h1>
           <p className="text-sm text-muted-foreground">Aquí tienes un resumen del estado de tu sistema de garantías.</p>
         </div>
-        <p className="text-sm font-medium text-blue-600">
+        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
           {nowDate.toLocaleDateString("es", { day: "2-digit", month: "long", year: "numeric" })}
           {" · "}
           {nowDate.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
@@ -325,7 +325,7 @@ export default async function AdminPage() {
         <Card className="xl:col-span-2">
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Últimas garantías registradas</CardTitle>
-            <Link href="/admin/garantias" className="text-sm text-blue-600 hover:underline">
+            <Link href="/admin/garantias" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
               Ver todas →
             </Link>
           </CardHeader>
@@ -382,7 +382,7 @@ export default async function AdminPage() {
             ) : (
               activity.map((a) => (
                 <div key={a.id} className="flex items-start gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                     <a.icon className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">

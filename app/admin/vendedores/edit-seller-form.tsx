@@ -1,13 +1,14 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import { updateSellerSchema, type UpdateSellerInput } from "@/lib/validation/sellers";
+import { Select } from "@/components/ui/select";
 
 type Store = { id: string; code: string; name: string };
 
@@ -26,6 +27,7 @@ export function EditSellerForm({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<UpdateSellerInput>({
@@ -55,18 +57,21 @@ export function EditSellerForm({
         </Field>
         <Field data-invalid={!!errors.storeId}>
           <FieldLabel htmlFor="edit-storeId">Tienda</FieldLabel>
-          <select
-            id="edit-storeId"
-            className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            {...register("storeId")}
-          >
-            <option value="">Selecciona una tienda</option>
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.code})
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="storeId"
+            render={({ field }) => (
+              <Select
+                id="edit-storeId"
+                value={field.value}
+                onValueChange={field.onChange}
+                onBlur={field.onBlur}
+                invalid={!!errors.storeId}
+                placeholder="Selecciona una tienda"
+                options={stores.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }))}
+              />
+            )}
+          />
           <FieldError errors={[errors.storeId]} />
         </Field>
         <SubmitButton pending={isPending}>

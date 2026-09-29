@@ -160,7 +160,7 @@ export function ProductForm(props: Props) {
             {isCreate ? "Crear producto" : "Guardar cambios"}
           </SubmitButton>
           {!isCreate && isDirty && !isPending ? (
-            <span className="text-sm text-amber-600 animate-in fade-in duration-200">
+            <span className="text-sm text-amber-600 dark:text-amber-400 animate-in fade-in duration-200">
               Tienes cambios sin guardar
             </span>
           ) : null}

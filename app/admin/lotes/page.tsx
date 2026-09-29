@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CreateLotDialog } from "./create-lot-dialog";
+import { Select } from "@/components/ui/select";
 
 export const metadata: Metadata = { title: "Lotes" };
 
@@ -60,25 +61,20 @@ export default async function LotesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Lotes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Lotes</h1>
           <p className="text-sm text-muted-foreground">Origen y garantía por defecto de los seriales.</p>
         </div>
         <CreateLotDialog products={products ?? []} />
       </div>
 
       <form className="flex max-w-sm items-center gap-2">
-        <select
+        <Select
           name="producto"
+          aria-label="Producto"
           defaultValue={producto ?? ""}
-          className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todos los productos</option>
-          {(products ?? []).map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.code})
-            </option>
-          ))}
-        </select>
+          placeholder="Todos los productos"
+          options={(products ?? []).map((p) => ({ value: p.id, label: `${p.name} (${p.code})` }))}
+        />
       </form>
 
       {!lots || lots.length === 0 ? (
@@ -103,7 +99,7 @@ export default async function LotesPage({
               {lots.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <Link href={`/admin/lotes/${l.id}`} className="font-mono text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/admin/lotes/${l.id}`} className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {l.code}
                     </Link>
                   </TableCell>

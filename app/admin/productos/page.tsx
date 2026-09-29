@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Package } from "lucide-react";
+import { Package, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -47,7 +48,7 @@ export default async function ProductosPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Productos</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Productos</h1>
           <p className="text-sm text-muted-foreground">
             Catálogo de productos y su política de garantía.
           </p>
@@ -70,35 +71,34 @@ export default async function ProductosPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-14">
-                  <span className="sr-only">Foto</span>
-                </TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Garantía</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="w-12">
+                  <span className="sr-only">Acciones</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>
-                    {p.photo_path ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={productPhotoUrl(p.photo_path)}
-                        alt=""
-                        className="size-8 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="size-8 rounded border border-dashed" />
-                    )}
-                  </TableCell>
                   <TableCell className="font-mono text-sm">{p.code}</TableCell>
                   <TableCell>
-                    <Link href={`/admin/productos/${p.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
-                      {p.name}
-                    </Link>
+                    <div className="flex items-center gap-2.5">
+                      {/* Miniatura solo si hay foto: sin placeholder vacío. */}
+                      {p.photo_path ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={productPhotoUrl(p.photo_path)}
+                          alt=""
+                          className="size-8 rounded-lg object-cover"
+                        />
+                      ) : null}
+                      <Link href={`/admin/productos/${p.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                        {p.name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {p.default_warranty_days} días
@@ -107,6 +107,16 @@ export default async function ProductosPage({
                     <Badge variant={p.is_active ? "success" : "danger"}>
                       {p.is_active ? "Activo" : "Inactivo"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Editar ${p.name}`}
+                      render={<Link href={`/admin/productos/${p.id}`} />}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

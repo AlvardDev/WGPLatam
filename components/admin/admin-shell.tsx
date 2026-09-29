@@ -9,6 +9,7 @@ import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 import { AdminSearchBar } from "@/components/admin/admin-search-bar";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { NotificationBell } from "@/components/admin/notification-bell";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { OnboardingProvider } from "@/components/admin/onboarding/onboarding-tour";
 import { adminNav, superadminNav } from "@/components/layout/nav-items";
 
@@ -96,6 +97,7 @@ export function AdminShell({
             </div>
 
             <div className="ml-auto flex items-center gap-2 md:ml-0">
+              <ThemeToggle />
               <NotificationBell
                 failedCount={failedNotifications}
                 missingBarcodeCount={missingBarcodeSerials}
@@ -109,7 +111,7 @@ export function AdminShell({
             <AdminSearchBar />
           </div>
 
-          <main className="flex-1 bg-slate-50 p-4 md:p-6">{children}</main>
+          <main className="flex-1 bg-slate-50 p-4 md:p-6 dark:bg-background">{children}</main>
         </div>
       </div>
     </OnboardingProvider>

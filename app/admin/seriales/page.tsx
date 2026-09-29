@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/admin/kpi-card";
 import { CreateSerialDialog } from "./create-serial-dialog";
 import { SerialesTable, type SerialRow } from "./seriales-table";
 import { PrevPageButton } from "./prev-page-button";
+import { Select } from "@/components/ui/select";
 
 export const metadata: Metadata = { title: "Seriales" };
 
@@ -130,7 +131,7 @@ export default async function SerialesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900">Seriales</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Seriales</h1>
           <p className="text-sm text-muted-foreground">Gestiona y consulta todos los seriales de tus productos.</p>
         </div>
         <div className="flex gap-2">
@@ -153,50 +154,46 @@ export default async function SerialesPage({
         <div className="w-full max-w-xs">
           <Input type="search" name="q" placeholder="Buscar por serial o código de barras..." defaultValue={q ?? ""} />
         </div>
-        <select
+        <Select
           name="producto"
+          aria-label="Producto"
           defaultValue={producto ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todos los productos</option>
-          {(products ?? []).map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
+          placeholder="Todos los productos"
+          options={(products ?? []).map((p) => ({ value: p.id, label: p.name }))}
+          className="w-48"
+        />
+        <Select
           name="lote"
+          aria-label="Lote"
           defaultValue={lote ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todos los lotes</option>
-          {filteredLots.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.code}
-            </option>
-          ))}
-        </select>
-        <select
+          placeholder="Todos los lotes"
+          options={filteredLots.map((l) => ({ value: l.id, label: l.code }))}
+          className="w-40"
+        />
+        <Select
           name="status"
+          aria-label="Estado"
           defaultValue={status ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todos los estados</option>
-          <option value="AVAILABLE">Disponible</option>
-          <option value="ACTIVATED">Activado</option>
-          <option value="BLOCKED">Bloqueado</option>
-          <option value="VOID">Anulado</option>
-        </select>
-        <select
+          placeholder="Todos los estados"
+          options={[
+            { value: "AVAILABLE", label: "Disponible" },
+            { value: "ACTIVATED", label: "Activado" },
+            { value: "BLOCKED", label: "Bloqueado" },
+            { value: "VOID", label: "Anulado" },
+          ]}
+          className="w-44"
+        />
+        <Select
           name="barcode"
+          aria-label="Código de barras"
           defaultValue={barcode ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Con o sin código de barras</option>
-          <option value="falta">Sin código de barras</option>
-          <option value="pendiente">Con autorización pendiente</option>
-        </select>
+          placeholder="Con o sin código de barras"
+          options={[
+            { value: "falta", label: "Sin código de barras" },
+            { value: "pendiente", label: "Con autorización pendiente" },
+          ]}
+          className="w-60"
+        />
         <Button type="submit" variant="outline">
           Filtrar
         </Button>

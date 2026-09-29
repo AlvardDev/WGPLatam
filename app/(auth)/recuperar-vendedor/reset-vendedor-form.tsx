@@ -37,13 +37,13 @@ export function ResetVendedorForm() {
   if (sent) {
     return (
       <AuthShell title="Solicitud registrada">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Si existe una cuenta de vendedor con ese correo, tu administrador fue notificado y se
           pondrá en contacto contigo para darte una contraseña nueva.
         </p>
         <Link
           href="/login"
-          className="mt-6 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+          className="mt-6 block text-center text-sm text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline"
         >
           Volver a iniciar sesión
         </Link>
@@ -84,7 +84,7 @@ export function ResetVendedorForm() {
       </form>
       <Link
         href="/login"
-        className="mt-4 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+        className="mt-4 block text-center text-sm text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline"
       >
         Volver a iniciar sesión
       </Link>

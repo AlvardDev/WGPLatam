@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Esperando autorización" };
 export default function PendientePage() {
   return (
     <AuthShell title="Esperando autorización">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Tu cuenta fue creada pero todavía no tiene acceso. Un administrador debe autorizarla
         primero — contáctalo si tarda demasiado.
       </p>

@@ -37,12 +37,12 @@ export function ResetForm() {
   if (sent) {
     return (
       <AuthShell title="Revisa tu correo">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.
         </p>
         <Link
           href="/login"
-          className="mt-6 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+          className="mt-6 block text-center text-sm text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline"
         >
           Volver a iniciar sesión
         </Link>
@@ -80,7 +80,7 @@ export function ResetForm() {
       </form>
       <Link
         href="/login"
-        className="mt-4 block text-center text-sm text-blue-600 underline-offset-4 hover:underline"
+        className="mt-4 block text-center text-sm text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline"
       >
         Volver a iniciar sesión
       </Link>

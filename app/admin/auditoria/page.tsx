@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,13 +21,61 @@ export const metadata: Metadata = { title: "Auditoría" };
 
 const PAGE_SIZE = 50;
 
-// Universo exacto de valores posibles: solo hay 2 fuentes de filas (ver
-// supabase/migrations/20260914201420_audit_logs.sql) — el trigger genérico
-// sobre las 4 tablas de catálogo (action = insert/update/delete) y
-// log_audit_event (action = login/logout, entity_type = auth). No es una
-// lista abierta que vaya a crecer sin tocar esta página.
-const ACTIONS = ["insert", "update", "delete", "login", "logout"] as const;
-const ENTITY_TYPES = ["stores", "profiles", "app_settings", "notification_settings", "auth"] as const;
+// Dos fuentes de filas: el trigger private.audit_row_change (action =
+// insert/update/delete, entity_type = nombre de la tabla) y log_audit_event
+// (login/logout, entity_type = auth). Las tablas con trigger son las de
+// ENTITY_LABEL (verificado en la base el 2026-09-29: 13 tablas). Si se agrega
+// el trigger a otra tabla, sumarla acá o se verá su nombre técnico.
+const ACTION_LABEL: Record<string, string> = {
+  insert: "Creó",
+  update: "Modificó",
+  delete: "Eliminó",
+  login: "Inició sesión",
+  logout: "Cerró sesión",
+};
+
+const ACTION_VARIANT: Record<string, BadgeVariant> = {
+  insert: "success",
+  update: "info",
+  delete: "danger",
+  login: "neutral",
+  logout: "neutral",
+};
+
+const ENTITY_LABEL: Record<string, string> = {
+  auth: "Sesión",
+  stores: "Tienda",
+  profiles: "Usuario",
+  products: "Producto",
+  lots: "Lote",
+  serials: "Serial",
+  serial_imports: "Importación",
+  serial_barcode_waivers: "Autorización sin código de barras",
+  warranties: "Garantía",
+  warranty_corrections: "Corrección de garantía",
+  warranty_claims: "Reclamo",
+  technical_reports: "Reporte técnico",
+  app_settings: "Configuración general",
+  notification_settings: "Configuración de notificaciones",
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  superadmin: "Superadmin",
+  admin: "Admin",
+  seller: "Vendedor",
+};
+
+// Nombre legible del registro afectado, sacado de la propia fila auditada
+// (sin consultas extra): nombre, serial, código... en ese orden.
+function recordName(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  for (const key of ["full_name", "name", "customer_name", "serial", "code", "file_name"]) {
+    const v = d[key];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return null;
+}
 
 type AuditRow = {
   id: number;
@@ -100,58 +149,53 @@ export default async function AuditoriaPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Auditoría</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Auditoría</h1>
         <p className="text-sm text-muted-foreground">
           Registro append-only: no se puede editar ni borrar.
         </p>
       </div>
 
       <form className="flex flex-wrap items-end gap-3" data-onboarding-target="audit-list">
-        <select
+        <Select
           name="accion"
+          aria-label="Acción"
           defaultValue={accion ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todas las acciones</option>
-          {ACTIONS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-        <select
+          placeholder="Todas las acciones"
+          options={Object.entries(ACTION_LABEL).map(([value, label]) => ({ value, label }))}
+          className="w-44"
+        />
+        <Select
           name="entidad"
+          aria-label="Módulo"
           defaultValue={entidad ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todas las entidades</option>
-          {ENTITY_TYPES.map((e) => (
-            <option key={e} value={e}>
-              {e}
-            </option>
-          ))}
-        </select>
-        <select
+          placeholder="Todos los módulos"
+          options={Object.entries(ENTITY_LABEL).map(([value, label]) => ({ value, label }))}
+          className="w-56"
+        />
+        <Select
           name="rol"
+          aria-label="Quién"
           defaultValue={rol ?? ""}
-          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="">Todos los actores</option>
-          <option value="admin">Admin</option>
-          <option value="seller">Vendedor</option>
-          <option value="sistema">Sistema</option>
-        </select>
+          placeholder="Todos los usuarios"
+          options={[
+            { value: "superadmin", label: "Superadmin" },
+            { value: "admin", label: "Admin" },
+            { value: "seller", label: "Vendedor" },
+            { value: "sistema", label: "Sistema" },
+          ]}
+          className="w-44"
+        />
         <div className="flex flex-col gap-1">
           <label htmlFor="desde" className="text-xs text-muted-foreground">
             Desde
           </label>
-          <Input id="desde" type="date" name="desde" defaultValue={desde ?? ""} className="h-8" />
+          <Input id="desde" type="date" name="desde" defaultValue={desde ?? ""} />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="hasta" className="text-xs text-muted-foreground">
             Hasta
           </label>
-          <Input id="hasta" type="date" name="hasta" defaultValue={hasta ?? ""} className="h-8" />
+          <Input id="hasta" type="date" name="hasta" defaultValue={hasta ?? ""} />
         </div>
         <Button type="submit" variant="outline">
           Filtrar
@@ -171,9 +215,9 @@ export default async function AuditoriaPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
-                  <TableHead>Actor</TableHead>
+                  <TableHead>Usuario</TableHead>
                   <TableHead>Acción</TableHead>
-                  <TableHead>Entidad</TableHead>
+                  <TableHead>Módulo</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -184,20 +228,24 @@ export default async function AuditoriaPage({
                       {new Date(log.occurred_at).toLocaleString("es")}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={log.actor_role ? "info" : "neutral"}>{log.actor_role ?? "sistema"}</Badge>
-                      {log.actor_id ? (
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          {actorNames.get(log.actor_id) ?? log.actor_id}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {log.actor_id ? (actorNames.get(log.actor_id) ?? "—") : "Sistema"}
                         </span>
-                      ) : null}
+                        {log.actor_role ? (
+                          <Badge variant="neutral">{ROLE_LABEL[log.actor_role] ?? log.actor_role}</Badge>
+                        ) : null}
+                      </div>
                     </TableCell>
-                    <TableCell className="font-medium">{log.action}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {log.entity_type}
-                      {log.entity_id ? (
-                        <span className="ml-1 font-mono text-xs">
-                          ({log.entity_id.slice(0, 8)})
-                        </span>
+                    <TableCell>
+                      <Badge variant={ACTION_VARIANT[log.action] ?? "outline"}>
+                        {ACTION_LABEL[log.action] ?? log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <span className="font-medium">{ENTITY_LABEL[log.entity_type] ?? log.entity_type}</span>
+                      {log.entity_type !== "auth" && recordName(log.new_data ?? log.old_data) ? (
+                        <span className="text-muted-foreground"> · {recordName(log.new_data ?? log.old_data)}</span>
                       ) : null}
                     </TableCell>
                     <TableCell>

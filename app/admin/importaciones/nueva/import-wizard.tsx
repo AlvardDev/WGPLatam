@@ -24,6 +24,7 @@ import {
   type ImportCounts,
 } from "@/lib/import/upload";
 import { selectLotSchema } from "@/lib/validation/imports";
+import { Select } from "@/components/ui/select";
 
 type Lot = { id: string; code: string; products: { name: string; code: string } | null };
 
@@ -153,19 +154,13 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
         <FieldGroup>
           <Field data-invalid={!!lotError}>
             <FieldLabel htmlFor="lotId">Lote destino</FieldLabel>
-            <select
+            <Select
               id="lotId"
               value={lotId}
-              onChange={(e) => setLotId(e.target.value)}
-              className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="">Selecciona un lote</option>
-              {lots.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.products?.name} — {l.code}
-                </option>
-              ))}
-            </select>
+              onValueChange={setLotId}
+              placeholder="Selecciona un lote"
+              options={lots.map((l) => ({ value: l.id, label: `${l.products?.name ?? ""} — ${l.code}` }))}
+            />
             <FieldError errors={[lotError ? { message: lotError } : undefined]} />
             <FieldDescription>Todos los seriales del archivo se crearán bajo este lote.</FieldDescription>
           </Field>
@@ -227,11 +222,11 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
             <div className="text-sm text-muted-foreground">Total</div>
           </div>
           <div className="rounded-2xl bg-card p-4 shadow-soft">
-            <div className="text-2xl font-semibold text-emerald-600">{counts.valid}</div>
+            <div className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{counts.valid}</div>
             <div className="text-sm text-muted-foreground">Válidas</div>
           </div>
           <div className="rounded-2xl bg-card p-4 shadow-soft">
-            <div className="text-2xl font-semibold text-amber-600">{counts.duplicate}</div>
+            <div className="text-2xl font-semibold text-amber-600 dark:text-amber-400">{counts.duplicate}</div>
             <div className="text-sm text-muted-foreground">Duplicadas</div>
           </div>
           <div className="rounded-2xl bg-card p-4 shadow-soft">
@@ -239,7 +234,7 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
             <div className="text-sm text-muted-foreground">Con error</div>
           </div>
           <div className="rounded-2xl bg-card p-4 shadow-soft">
-            <div className="text-2xl font-semibold text-amber-600">{counts.missingBarcode}</div>
+            <div className="text-2xl font-semibold text-amber-600 dark:text-amber-400">{counts.missingBarcode}</div>
             <div className="text-sm text-muted-foreground">Sin código de barras</div>
           </div>
         </div>
@@ -321,7 +316,7 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
           .
         </p>
         {counts && counts.missingBarcode > 0 && (
-          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
             {counts.missingBarcode} de esos seriales quedaron sin código de barras. Podés completarlo después desde
             Seriales.
           </p>

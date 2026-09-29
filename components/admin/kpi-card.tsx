@@ -22,19 +22,19 @@ export function KpiCard({
       <span
         className={cn(
           "flex size-11 shrink-0 items-center justify-center rounded-full",
-          alert ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600",
+          alert ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400" : "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
         )}
       >
         <Icon className="size-5" />
       </span>
       <div className="min-w-0">
         <p className="truncate text-sm text-muted-foreground">{label}</p>
-        <p className={cn("text-2xl font-semibold tabular-nums", alert && "text-red-600")}>{value}</p>
+        <p className={cn("text-2xl font-semibold tabular-nums", alert && "text-red-600 dark:text-red-400")}>{value}</p>
         {delta ? (
           <p
             className={cn(
               "flex items-center gap-1 text-xs font-medium",
-              delta.direction === "up" ? "text-emerald-600" : "text-red-500",
+              delta.direction === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500",
             )}
           >
             {delta.direction === "up" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}

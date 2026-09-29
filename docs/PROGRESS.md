@@ -2244,3 +2244,16 @@ timestamp de aplicación (no el del nombre de archivo).
   relleno gris suave y el primario lleva sombra tenue; inputs/selects `h-9 rounded-xl`; buscador del
   header relleno sin borde; dropdowns, diálogos y sheets con sombra en vez de línea/anillo, ítems
   más espaciados y overlay pizarra.
+- **Productos (2026-09-29)**: sin el recuadro vacío de foto en la lista (miniatura solo si hay
+  foto, junto al nombre) y lápiz de editar a la derecha (lleva a `/admin/productos/[id]`).
+- **Modo oscuro**: `next-themes` (`ThemeProvider` en `app/layout.tsx`, claro por defecto) +
+  `components/layout/theme-toggle.tsx` en el header de admin y de tienda. Paleta `.dark` azul noche
+  (tono del sidebar) con primario azul; colores fijos de las páginas llevan su variante `dark:`.
+- **Auditoría en español**: acción (Creó/Modificó/Eliminó/Inició sesión/Cerró sesión, con color),
+  módulo (Tienda, Producto, Garantía...) + nombre del registro afectado en vez de
+  `stores (uuid)`, rol traducido. Los filtros cubren las 13 tablas auditadas reales (antes solo 5,
+  no se podía filtrar productos/lotes/seriales/garantías/reclamos).
+- **Dropdowns WGP**: `components/ui/select.tsx` (base-ui Select, con input oculto para forms GET y
+  `value`/`onValueChange` para react-hook-form vía `Controller`) reemplaza los 15 `<select>`
+  nativos (filtros de auditoría, lotes, seriales, vendedores; formularios de lote, vendedor, serial
+  e importación).

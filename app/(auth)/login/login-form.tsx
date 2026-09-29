@@ -92,7 +92,7 @@ export function LoginForm() {
         </FieldGroup>
       </form>
       <div className="mt-4 flex flex-col items-center gap-1 text-center text-sm">
-        <Link href="/recuperar" className="text-blue-600 underline-offset-4 hover:underline">
+        <Link href="/recuperar" className="text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline">
           ¿Olvidaste tu contraseña?
         </Link>
         <Link

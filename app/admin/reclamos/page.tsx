@@ -55,7 +55,7 @@ export default async function ReclamosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900">Reclamos</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Reclamos</h1>
         <p className="text-sm text-muted-foreground">Últimos 100 reclamos, de todas las tiendas.</p>
       </div>
 
@@ -79,7 +79,7 @@ export default async function ReclamosPage() {
               {claims.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <Link href={`/admin/reclamos/${c.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
+                    <Link href={`/admin/reclamos/${c.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {c.reason}
                     </Link>
                   </TableCell>

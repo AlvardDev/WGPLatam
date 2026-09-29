@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DaysInput } from "@/components/ui/days-input";
@@ -9,6 +9,7 @@ import { SubmitButton, useFlash } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { lotSchema, lotUpdateSchema, type LotInput, type LotUpdateInput } from "@/lib/validation/lots";
+import { Select } from "@/components/ui/select";
 
 type Product = { id: string; code: string; name: string };
 
@@ -33,6 +34,7 @@ export function LotForm(props: Props) {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isDirty },
@@ -68,19 +70,21 @@ export function LotForm(props: Props) {
         {isCreate && (
           <Field data-invalid={!!("productId" in errors && errors.productId)}>
             <FieldLabel htmlFor="productId">Producto</FieldLabel>
-            <select
-              id="productId"
-              aria-invalid={!!("productId" in errors && errors.productId)}
-              className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20"
-              {...register("productId")}
-            >
-              <option value="">Selecciona un producto</option>
-              {props.products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="productId"
+              render={({ field }) => (
+                <Select
+                  id="productId"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                  invalid={!!("productId" in errors && errors.productId)}
+                  placeholder="Selecciona un producto"
+                  options={props.products.map((p) => ({ value: p.id, label: `${p.name} (${p.code})` }))}
+                />
+              )}
+            />
             <FieldError errors={["productId" in errors ? errors.productId : undefined]} />
           </Field>
         )}
