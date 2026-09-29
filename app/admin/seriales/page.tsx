@@ -156,7 +156,7 @@ export default async function SerialesPage({
         <select
           name="producto"
           defaultValue={producto ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los productos</option>
           {(products ?? []).map((p) => (
@@ -168,7 +168,7 @@ export default async function SerialesPage({
         <select
           name="lote"
           defaultValue={lote ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los lotes</option>
           {filteredLots.map((l) => (
@@ -180,7 +180,7 @@ export default async function SerialesPage({
         <select
           name="status"
           defaultValue={status ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los estados</option>
           <option value="AVAILABLE">Disponible</option>
@@ -191,7 +191,7 @@ export default async function SerialesPage({
         <select
           name="barcode"
           defaultValue={barcode ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Con o sin código de barras</option>
           <option value="falta">Sin código de barras</option>

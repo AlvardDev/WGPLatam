@@ -2239,3 +2239,8 @@ timestamp de aplicación (no el del nombre de archivo).
   cabecera de tabla con fondo gris claro en mayúsculas pequeñas y filas con divisor tenue;
   inputs/selects/textareas con relleno gris claro que pasa a blanco al enfocar; sin líneas entre
   header, buscador y contenido en los layouts admin y tienda (fondo `slate-50`).
+- **Suavizado 2 (2026-09-29)**: texto en pizarra (`--foreground` slate-800, `--muted-foreground`
+  slate-500) en vez de negro; botones `h-9 rounded-xl` con presión por escala, "outline" pasa a
+  relleno gris suave y el primario lleva sombra tenue; inputs/selects `h-9 rounded-xl`; buscador del
+  header relleno sin borde; dropdowns, diálogos y sheets con sombra en vez de línea/anillo, ítems
+  más espaciados y overlay pizarra.

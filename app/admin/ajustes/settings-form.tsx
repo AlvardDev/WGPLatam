@@ -103,7 +103,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: AppSettingsInpu
                     <textarea
                       id={f.name}
                       rows={3}
-                      className="min-h-16 w-full rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="min-h-16 w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                       {...register(f.name)}
                     />
                   ) : (

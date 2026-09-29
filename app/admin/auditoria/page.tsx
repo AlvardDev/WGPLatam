@@ -110,7 +110,7 @@ export default async function AuditoriaPage({
         <select
           name="accion"
           defaultValue={accion ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todas las acciones</option>
           {ACTIONS.map((a) => (
@@ -122,7 +122,7 @@ export default async function AuditoriaPage({
         <select
           name="entidad"
           defaultValue={entidad ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todas las entidades</option>
           {ENTITY_TYPES.map((e) => (
@@ -134,7 +134,7 @@ export default async function AuditoriaPage({
         <select
           name="rol"
           defaultValue={rol ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los actores</option>
           <option value="admin">Admin</option>

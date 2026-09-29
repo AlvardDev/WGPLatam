@@ -78,7 +78,7 @@ export default async function VendedoresPage({
         <select
           name="tienda"
           defaultValue={tienda ?? ""}
-          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todas las tiendas</option>
           {(stores ?? []).map((s) => (

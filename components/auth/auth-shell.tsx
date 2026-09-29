@@ -19,7 +19,7 @@ export function AuthShell({
       <BrandPanel />
       <div className="flex flex-1 items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">{title}</h1>
           {description ? <p className="mt-2 text-sm text-slate-500">{description}</p> : null}
 
           <div className="mt-8">{children}</div>

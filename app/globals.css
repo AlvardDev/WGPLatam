@@ -50,11 +50,12 @@
 
 :root {
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Texto suave: pizarra (slate-800/500) en vez de negro puro. */
+  --foreground: oklch(0.279 0.041 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.279 0.041 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.279 0.041 260);
   /* Azul de marca (WGP): mismo tono que el panel oscuro del login/dashboard
      (Tailwind blue-600), no negro-grisáceo. Cambia acá en vez de por
      componente — botones "default", enlaces con text-primary, anillos de
@@ -62,16 +63,16 @@
   --primary: oklch(0.546 0.245 262.881);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.279 0.041 260);
+  --muted: oklch(0.968 0.007 248);
+  --muted-foreground: oklch(0.554 0.046 257);
+  --accent: oklch(0.968 0.007 248);
+  --accent-foreground: oklch(0.279 0.041 260);
   --destructive: oklch(0.577 0.245 27.325);
   /* Bordes suaves (estética tipo Brixolimp): líneas casi invisibles, la
      separación la dan el fondo gris claro y las sombras. */
   --border: oklch(0.948 0.004 264);
-  --input: oklch(0.915 0.006 264);
+  --input: oklch(0.935 0.006 264);
   --ring: oklch(0.623 0.214 259.815);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);

@@ -30,7 +30,7 @@ export function AdminSearchBar() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Buscar por serial o código de barras..."
-        className="h-10 w-full rounded-lg border border-input bg-transparent pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="h-10 w-full rounded-xl border border-transparent bg-muted/80 pl-9 transition-colors focus-visible:bg-background pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       />
     </form>
   );

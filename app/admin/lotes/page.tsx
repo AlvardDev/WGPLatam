@@ -70,7 +70,7 @@ export default async function LotesPage({
         <select
           name="producto"
           defaultValue={producto ?? ""}
-          className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-9 w-full rounded-xl border border-input bg-muted/40 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los productos</option>
           {(products ?? []).map((p) => (
