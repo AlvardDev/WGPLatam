@@ -2199,3 +2199,13 @@ SIGUIENTE:
   Nota: create-next-app se niega a escribir en carpetas con archivos que no reconoce (p. ej. CLAUDE.md).
   Generar el scaffold en una carpeta temporal y moverlo, fusionando su CLAUDE.md/AGENTS.md con el nuestro.
 ```
+
+## Nota 2026-09-28: migraciones pendientes aplicadas
+
+Aplicadas al proyecto real (`vebuujkumccbtxaavida`, vía MCP de Supabase reconectado) las tres
+migraciones que estaban en git sin migrar: `20260921000000_optional_serial_barcode`,
+`20260928000000_seller_profile_update` y `20260929000000_product_photos`. Verificado: `barcode`
+nullable, funciones nuevas presentes, columna `products.photo_path`, bucket `product-photos` y RLS
+de `serial_barcode_waivers`. Advisors de seguridad sin hallazgos nuevos. Las notas "pendiente
+aplicar migración" de arriba quedan resueltas. Las versiones en `supabase_migrations` llevan el
+timestamp de aplicación (no el del nombre de archivo).
