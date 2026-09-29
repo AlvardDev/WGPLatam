@@ -30,6 +30,7 @@ export function MfaGate() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [failures, setFailures] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -97,6 +98,7 @@ export function MfaGate() {
       });
       if (error) {
         setFormError("Código incorrecto o vencido. Intenta de nuevo.");
+        setFailures((n) => n + 1);
         reset({ code: "" });
         return;
       }
@@ -151,6 +153,7 @@ export function MfaGate() {
               name="code"
               render={({ field }) => (
                 <OtpInput
+                  shakeKey={failures}
                   value={field.value}
                   onChange={field.onChange}
                   onComplete={() => void handleSubmit(onSubmit)()}

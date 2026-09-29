@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
 import { NotificationSettingsForm } from "./notification-settings-form";
 import { ReplayOnboardingCard } from "./replay-onboarding-card";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -30,12 +31,10 @@ export default async function AjustesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Ajustes</h1>
-        <p className="text-sm text-muted-foreground">
-          Configuración pública del negocio: empresa, garantías, sistema y soporte.
-        </p>
-      </div>
+      <PageHeader
+        title="Ajustes"
+        description="Configuración pública del negocio: empresa, garantías, sistema y soporte."
+      />
       <SettingsForm
         defaultValues={{
           companyName: settings.company_name,

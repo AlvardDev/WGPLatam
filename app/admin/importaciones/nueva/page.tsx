@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ImportWizard } from "./import-wizard";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Nueva importación" };
 
@@ -17,10 +18,11 @@ export default async function NuevaImportacionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Nueva importación</h1>
-        <p className="text-sm text-muted-foreground">Carga masiva de seriales desde un archivo CSV o Excel, para un solo lote.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Importaciones", href: "/admin/importaciones" }, { label: "Nueva" }]}
+        title="Nueva importación"
+        description="Carga masiva de seriales desde un archivo CSV o Excel, para un solo lote."
+      />
       <ImportWizard lots={lots ?? []} />
     </div>
   );

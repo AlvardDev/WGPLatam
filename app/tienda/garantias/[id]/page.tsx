@@ -9,6 +9,8 @@ import { ClaimHistory, type ClaimRow } from "@/components/warranties/claim-histo
 import { EditCustomerForm } from "./edit-customer-form";
 import { RequestCorrectionForm } from "./request-correction-form";
 import { OpenClaimForm } from "./open-claim-form";
+import { PageHeader } from "@/components/layout/page-header";
+import { expiryInfo, formatDate, formatDateTime, formatDuration } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Garantía" };
 
@@ -51,25 +53,26 @@ export default async function GarantiaDetallePage({
   const canEdit = !warranty.voided_at && new Date() < editableUntil;
   const canRequestCorrection = !warranty.voided_at && !canEdit;
 
+  const expiry = expiryInfo(warranty.expires_at, warranty.voided_at);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{warranty.product_name}</h1>
-            {warranty.voided_at && <Badge variant="danger">Anulada</Badge>}
-          </div>
-          <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
-        </div>
-        <Button render={<a href={`/api/garantias/${warranty.id}/comprobante?download=1`} />}>
-          Descargar comprobante
-        </Button>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Inicio", href: "/tienda" }, { label: warranty.serial }]}
+        title={warranty.product_name}
+        description={<span className="font-mono">{warranty.serial}</span>}
+        badge={<Badge variant={expiry.variant}>{expiry.label}</Badge>}
+        actions={
+          <Button render={<a href={`/api/garantias/${warranty.id}/comprobante?download=1`} />}>
+            Descargar comprobante
+          </Button>
+        }
+      />
 
       {warranty.voided_at && (
         <Card>
           <CardContent className="text-sm text-muted-foreground">
-            Esta garantía fue anulada el {new Date(warranty.voided_at).toLocaleString("es")}. Motivo: {warranty.voided_reason}
+            Esta garantía fue anulada el {formatDateTime(warranty.voided_at)}. Motivo: {warranty.voided_reason}
           </CardContent>
         </Card>
       )}
@@ -89,15 +92,15 @@ export default async function GarantiaDetallePage({
           </div>
           <div>
             <p className="text-muted-foreground">Activada</p>
-            <p className="font-medium">{new Date(warranty.activated_at).toLocaleString("es")}</p>
+            <p className="font-medium">{formatDateTime(warranty.activated_at)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Vence</p>
-            <p className="font-medium">{new Date(warranty.expires_at).toLocaleDateString("es")}</p>
+            <p className="font-medium">{formatDate(warranty.expires_at)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Duración</p>
-            <p className="font-medium">{warranty.duration_days} días</p>
+            <p className="font-medium">{formatDuration(warranty.duration_days)}</p>
           </div>
         </CardContent>
       </Card>

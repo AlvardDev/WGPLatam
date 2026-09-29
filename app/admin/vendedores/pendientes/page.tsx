@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ResetActions } from "./reset-actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Vendedores pendientes" };
 
@@ -20,13 +22,14 @@ export default async function VendedoresPendientesPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Vendedores pendientes</h1>
-        <p className="text-sm text-muted-foreground">Solicitudes de restablecer contraseña.</p>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Vendedores", href: "/admin/vendedores" }, { label: "Pendientes" }]}
+        title="Vendedores pendientes"
+        description="Solicitudes de restablecer contraseña."
+      />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">Solicitudes de restablecer contraseña</h2>
+        <h2 className="text-base font-semibold">Solicitudes de restablecer contraseña</h2>
         {resets.data && resets.data.length > 0 ? (
           <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
             <Table>
@@ -46,7 +49,7 @@ export default async function VendedoresPendientesPage() {
                     <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.storeName ?? "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(r.requestedAt).toLocaleDateString("es")}
+                      <span title={formatDateTime(r.requestedAt)}>{timeAgo(r.requestedAt)}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <ResetActions requestId={r.requestId} userId={r.userId} />

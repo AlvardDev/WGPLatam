@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/table";
 import { CreateProductDialog } from "./create-product-dialog";
 import { productPhotoUrl } from "@/lib/image/product-photos";
+import { PageHeader } from "@/components/layout/page-header";
+import { formatDuration } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Productos" };
 
@@ -46,15 +48,11 @@ export default async function ProductosPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Productos</h1>
-          <p className="text-sm text-muted-foreground">
-            Catálogo de productos y su política de garantía.
-          </p>
-        </div>
-        <CreateProductDialog />
-      </div>
+      <PageHeader
+        title="Productos"
+        description="Catálogo de productos y su política de garantía."
+        actions={<CreateProductDialog />}
+      />
 
       <form className="max-w-sm">
         <Input type="search" name="q" placeholder="Buscar por nombre o código..." defaultValue={q ?? ""} />
@@ -65,6 +63,7 @@ export default async function ProductosPage({
           icon={Package}
           title={q ? "Sin resultados" : "Todavía no hay productos"}
           description={q ? `Nada coincide con "${q}".` : "Crea el primer producto para empezar."}
+          action={!q ? <CreateProductDialog /> : undefined}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -95,13 +94,13 @@ export default async function ProductosPage({
                           className="size-8 rounded-lg object-cover"
                         />
                       ) : null}
-                      <Link href={`/admin/productos/${p.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                      <Link href={`/admin/productos/${p.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                         {p.name}
                       </Link>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {p.default_warranty_days} días
+                    {formatDuration(p.default_warranty_days)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={p.is_active ? "success" : "danger"}>

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { AuditDetailDialog } from "./audit-detail-dialog";
+import { PageHeader } from "@/components/layout/page-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const metadata: Metadata = { title: "Auditoría" };
 
@@ -148,12 +150,10 @@ export default async function AuditoriaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Auditoría</h1>
-        <p className="text-sm text-muted-foreground">
-          Registro append-only: no se puede editar ni borrar.
-        </p>
-      </div>
+      <PageHeader
+        title="Auditoría"
+        description="Historial de cambios y accesos. No se puede editar ni borrar."
+      />
 
       <form className="flex flex-wrap items-end gap-3" data-onboarding-target="audit-list">
         <Select
@@ -229,6 +229,10 @@ export default async function AuditoriaPage({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <UserAvatar
+                          name={log.actor_id ? (actorNames.get(log.actor_id) ?? "?") : "Sistema"}
+                          size="sm"
+                        />
                         <span className="font-medium">
                           {log.actor_id ? (actorNames.get(log.actor_id) ?? "—") : "Sistema"}
                         </span>

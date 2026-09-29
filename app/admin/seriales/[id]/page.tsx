@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { SerialActions } from "./serial-actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { DeleteEntityDialog } from "@/components/admin/delete-entity-dialog";
 
 export const metadata: Metadata = { title: "Serial" };
 
@@ -58,18 +60,23 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{serial.serial}</h1>
-          <Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{STATUS_LABEL[serial.status] ?? serial.status}</Badge>
-        </div>
-        <SerialActions
-          id={serial.id}
-          status={serial.status}
-          barcode={serial.barcode}
-          pendingWaiverId={pendingWaiver?.id ?? null}
-        />
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Seriales", href: "/admin/seriales" }, { label: serial.serial }]}
+        title={serial.serial}
+        mono
+        badge={<Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{STATUS_LABEL[serial.status] ?? serial.status}</Badge>}
+        actions={
+          <>
+            <SerialActions
+              id={serial.id}
+              status={serial.status}
+              barcode={serial.barcode}
+              pendingWaiverId={pendingWaiver?.id ?? null}
+            />
+            <DeleteEntityDialog entity="serial" id={serial.id} label={serial.serial} redirectTo="/admin/seriales" />
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>

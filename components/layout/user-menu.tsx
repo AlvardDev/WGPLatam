@@ -1,9 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/actions/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,15 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function UserMenu({ fullName, roleLabel }: { fullName: string; roleLabel: string }) {
   const [isPending, startTransition] = useTransition();
@@ -29,9 +20,7 @@ export function UserMenu({ fullName, roleLabel }: { fullName: string; roleLabel:
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Avatar className="size-8">
-          <AvatarFallback>{initials(fullName) || <User className="size-4" />}</AvatarFallback>
-        </Avatar>
+        <UserAvatar name={fullName} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>

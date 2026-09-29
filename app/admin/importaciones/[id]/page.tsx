@@ -4,6 +4,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ImportResume } from "./import-resume";
 import { PurgeStagingButton } from "./purge-staging-button";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Importación" };
 
@@ -60,13 +61,16 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{imp.file_name}</h1>
-        <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{STATUS_LABEL[imp.status] ?? imp.status}</Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Lote: {imp.lots?.products?.name} — <span className="font-mono">{imp.lots?.code}</span>
-      </p>
+      <PageHeader
+        breadcrumbs={[{ label: "Importaciones", href: "/admin/importaciones" }, { label: imp.file_name }]}
+        title={imp.file_name}
+        badge={<Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{STATUS_LABEL[imp.status] ?? imp.status}</Badge>}
+        description={
+          <>
+            Lote: {imp.lots?.products?.name} — <span className="font-mono">{imp.lots?.code}</span>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-6">
         <Stat label="Total" value={imp.total_rows} />

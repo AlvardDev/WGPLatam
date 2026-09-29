@@ -31,8 +31,8 @@ export function StatusDonutChart({
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="relative shrink-0">
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90">
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#e2e8f0" strokeWidth={STROKE} />
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90 animate-in zoom-in-90 fade-in duration-500">
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" className="stroke-muted" strokeWidth={STROKE} />
           {total > 0
             ? segments
                 .filter((s) => s.value > 0)
@@ -70,8 +70,9 @@ export function StatusDonutChart({
           <li key={s.label} className="flex items-center gap-2 text-sm">
             <span className={`size-2.5 shrink-0 rounded-full ${s.colorClass}`} />
             <span className="flex-1 truncate text-muted-foreground">{s.label}</span>
-            <span className="shrink-0 font-medium tabular-nums">
-              {total > 0 ? ((s.value / total) * 100).toFixed(1) : "0.0"}%
+            <span className="shrink-0 text-muted-foreground tabular-nums">{s.value.toLocaleString("es")}</span>
+            <span className="w-12 shrink-0 text-right font-medium tabular-nums">
+              {total > 0 ? Math.round((s.value / total) * 100) : 0}%
             </span>
           </li>
         ))}

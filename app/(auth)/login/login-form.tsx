@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { signIn } from "@/lib/actions/auth";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
@@ -84,10 +84,11 @@ export function LoginForm() {
           <Button
             type="submit"
             disabled={isPending}
-            className="h-11 w-full gap-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="h-11 w-full gap-2 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/25 hover:bg-blue-700"
           >
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
             {isPending ? "Ingresando..." : "Iniciar sesión"}
-            {!isPending && <ArrowRight className="size-4" />}
+            {!isPending && <ArrowRight className="size-4 transition-transform group-hover/button:translate-x-0.5" />}
           </Button>
         </FieldGroup>
       </form>

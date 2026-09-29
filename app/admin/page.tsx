@@ -13,8 +13,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "cn";
-import { KpiCard } from "@/components/admin/kpi-card";
+import { KpiCard, monthOverMonth } from "@/components/admin/kpi-card";
+import { PageHeader } from "@/components/layout/page-header";
+import { expiryInfo, formatDateTime, timeAgo } from "@/lib/format";
 import { MonthlyBarChart } from "@/components/charts/monthly-bar-chart";
 import { StatusDonutChart } from "@/components/charts/status-donut-chart";
 
@@ -28,12 +31,6 @@ function monthRange(monthsAgo: number) {
   const end = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 1);
   return { start: start.toISOString(), end: end.toISOString(), label: MESES[start.getMonth()] };
 }
-
-const WARRANTY_STATUS_BADGE: Record<string, string> = {
-  Activa: "bg-emerald-100 text-emerald-700 dark:text-emerald-300",
-  Vencida: "bg-red-100 text-red-700 dark:text-red-300",
-  Anulada: "bg-slate-200 text-slate-600 dark:text-slate-400",
-};
 
 // KPIs reales, Fase 9 (docs/PROJECT-PLAN.md, fila 9 — "dashboard admin" era
 // explícitamente trabajo diferido desde la Fase 1). Cada número es un
@@ -50,6 +47,8 @@ export default async function AdminPage() {
   const now = nowDate.toISOString();
   const in30Days = new Date(nowDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const startOfMonth = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1).toISOString();
+  const startOfLastMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toISOString();
+  const lastMonthLabel = MESES[new Date(startOfLastMonth).getMonth()].toLowerCase();
   const months = Array.from({ length: 12 }, (_, i) => monthRange(11 - i));
 
   const { data: claimsData } = await supabase.auth.getClaims();
@@ -78,6 +77,8 @@ export default async function AdminPage() {
     { count: totalSeriales },
     { count: serialesNuevosEsteMes },
     { count: garantiasNuevasEsteMes },
+    { count: productosMesPasado },
+    { count: serialesMesPasado },
     { data: ultimasGarantias },
     { data: ultimosProductos },
     { data: ultimosLotes },
@@ -107,6 +108,16 @@ export default async function AdminPage() {
     supabase.from("serials").select("id", { count: "exact", head: true }),
     supabase.from("serials").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth),
     supabase.from("warranties").select("id", { count: "exact", head: true }).gte("activated_at", startOfMonth),
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfLastMonth)
+      .lt("created_at", startOfMonth),
+    supabase
+      .from("serials")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfLastMonth)
+      .lt("created_at", startOfMonth),
     supabase
       .from("warranties")
       .select("id, product_name, serial, customer_name, activated_at, expires_at, voided_at")
@@ -173,14 +184,12 @@ export default async function AdminPage() {
 
   const barData = months.map((m, i) => ({ label: m.label, value: monthlyWarrantyCounts[i].count ?? 0 }));
 
-  const donutTotal =
-    (garantiasActivas ?? 0) + (garantiasPorVencer ?? 0) + (garantiasVencidas ?? 0) + (garantiasAnuladas ?? 0);
+  // "Por vencer" es un subconjunto de "Activas" (no anuladas y sin vencer):
+  // en el anillo se muestran separadas para no contar dos veces.
+  const vigentesLargas = Math.max((garantiasActivas ?? 0) - (garantiasPorVencer ?? 0), 0);
+  const donutTotal = vigentesLargas + (garantiasPorVencer ?? 0) + (garantiasVencidas ?? 0) + (garantiasAnuladas ?? 0);
 
-  function warrantyStatusLabel(w: { voided_at: string | null; expires_at: string }) {
-    if (w.voided_at) return "Anulada";
-    if (new Date(w.expires_at) <= nowDate) return "Vencida";
-    return "Activa";
-  }
+  const garantiasMesPasado = monthlyWarrantyCounts[10].count ?? 0;
 
   type Activity = { id: string; icon: typeof ShieldCheck; title: string; subtitle: string; at: string };
   const activity: Activity[] = [
@@ -245,52 +254,56 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">
-            ¡Bienvenido, {profile?.full_name ?? "Administrador"}!
-          </h1>
-          <p className="text-sm text-muted-foreground">Aquí tienes un resumen del estado de tu sistema de garantías.</p>
-        </div>
-        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-          {nowDate.toLocaleDateString("es", { day: "2-digit", month: "long", year: "numeric" })}
-          {" · "}
-          {nowDate.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      </div>
+      <PageHeader
+        title={`¡Hola, ${profile?.full_name?.split(" ")[0] ?? "Administrador"}!`}
+        description="Aquí tienes un resumen del estado de tu sistema de garantías."
+        actions={
+          <p className="text-sm font-medium text-muted-foreground capitalize">
+            {nowDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           icon={Package}
           label="Total de productos"
           value={totalProductos ?? 0}
-          delta={
-            (productosNuevosEsteMes ?? 0) > 0
-              ? { value: `+${productosNuevosEsteMes} este mes`, direction: "up" }
-              : undefined
-          }
+          hint={`${productosNuevosEsteMes ?? 0} nuevos este mes`}
+          trend={(() => {
+            const pct = monthOverMonth(productosNuevosEsteMes ?? 0, productosMesPasado ?? 0);
+            return pct === null ? null : { pct, label: `vs ${lastMonthLabel}` };
+          })()}
         />
         <KpiCard
           icon={ClipboardList}
+          tone="violet"
           label="Seriales registrados"
-          value={(totalSeriales ?? 0).toLocaleString("es")}
-          delta={
-            (serialesNuevosEsteMes ?? 0) > 0
-              ? { value: `+${serialesNuevosEsteMes} este mes`, direction: "up" }
-              : undefined
-          }
+          value={totalSeriales ?? 0}
+          hint={`${(serialesNuevosEsteMes ?? 0).toLocaleString("es")} nuevos este mes`}
+          trend={(() => {
+            const pct = monthOverMonth(serialesNuevosEsteMes ?? 0, serialesMesPasado ?? 0);
+            return pct === null ? null : { pct, label: `vs ${lastMonthLabel}` };
+          })()}
         />
         <KpiCard
           icon={ShieldCheck}
+          tone="emerald"
           label="Garantías activas"
-          value={(garantiasActivas ?? 0).toLocaleString("es")}
-          delta={
-            (garantiasNuevasEsteMes ?? 0) > 0
-              ? { value: `+${garantiasNuevasEsteMes} este mes`, direction: "up" }
-              : undefined
-          }
+          value={garantiasActivas ?? 0}
+          hint={`${garantiasNuevasEsteMes ?? 0} activadas este mes`}
+          trend={(() => {
+            const pct = monthOverMonth(garantiasNuevasEsteMes ?? 0, garantiasMesPasado);
+            return pct === null ? null : { pct, label: `vs ${lastMonthLabel}` };
+          })()}
         />
-        <KpiCard icon={Truck} label="Garantías por vencer" value={garantiasPorVencer ?? 0} />
+        <KpiCard
+          icon={Truck}
+          tone="amber"
+          label="Por vencer (30 días)"
+          value={garantiasPorVencer ?? 0}
+          hint="Avisa al cliente antes de que venzan"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -311,7 +324,7 @@ export default async function AdminPage() {
               total={donutTotal}
               totalLabel="Total"
               segments={[
-                { label: "Activas", value: garantiasActivas ?? 0, colorClass: "bg-blue-600", colorHex: "#2563eb" },
+                { label: "Vigentes", value: vigentesLargas, colorClass: "bg-blue-600", colorHex: "#2563eb" },
                 { label: "Por vencer", value: garantiasPorVencer ?? 0, colorClass: "bg-amber-500", colorHex: "#f59e0b" },
                 { label: "Vencidas", value: garantiasVencidas ?? 0, colorClass: "bg-red-500", colorHex: "#ef4444" },
                 { label: "Anuladas", value: garantiasAnuladas ?? 0, colorClass: "bg-slate-300", colorHex: "#cbd5e1" },
@@ -345,23 +358,21 @@ export default async function AdminPage() {
                 </thead>
                 <tbody>
                   {ultimasGarantias.map((w) => {
-                    const statusLabel = warrantyStatusLabel(w);
+                    const status = expiryInfo(w.expires_at, w.voided_at);
                     return (
-                      <tr key={w.id} className="border-b border-border/60 last:border-0">
-                        <td className="py-2">
-                          <Link href={`/admin/garantias/${w.id}`} className="font-mono text-xs hover:underline">
+                      <tr key={w.id} className="relative border-b border-border/60 transition-colors last:border-0 hover:bg-muted/50">
+                        <td className="py-2.5">
+                          <Link href={`/admin/garantias/${w.id}`} className="row-link font-mono text-xs text-blue-700 dark:text-blue-300">
                             {w.serial}
                           </Link>
                         </td>
-                        <td className="py-2">{w.product_name}</td>
-                        <td className="py-2 text-muted-foreground">{w.customer_name}</td>
-                        <td className="py-2 text-muted-foreground">
-                          {new Date(w.activated_at).toLocaleDateString("es")}
+                        <td className="py-2.5">{w.product_name}</td>
+                        <td className="py-2.5 text-muted-foreground">{w.customer_name}</td>
+                        <td className="py-2.5 text-muted-foreground" title={formatDateTime(w.activated_at)}>
+                          {timeAgo(w.activated_at)}
                         </td>
-                        <td className="py-2">
-                          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", WARRANTY_STATUS_BADGE[statusLabel])}>
-                            {statusLabel}
-                          </span>
+                        <td className="py-2.5">
+                          <Badge variant={status.variant}>{status.label}</Badge>
                         </td>
                       </tr>
                     );
@@ -389,8 +400,8 @@ export default async function AdminPage() {
                     <p className="text-sm font-medium">{a.title}</p>
                     <p className="truncate text-xs text-muted-foreground">{a.subtitle}</p>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {new Date(a.at).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
+                  <span className="shrink-0 text-xs text-muted-foreground" title={formatDateTime(a.at)}>
+                    {timeAgo(a.at)}
                   </span>
                 </div>
               ))
@@ -400,15 +411,15 @@ export default async function AdminPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Acciones rápidas</h2>
+        <h2 className="mb-3 text-base font-semibold">Acciones rápidas</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {acciones.map((a) => (
             <Link
               key={a.href}
               href={a.href}
-              className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-soft transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-blue-50/60"
+              className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-soft transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-blue-50/60"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/30 transition-transform duration-300 group-hover:scale-110">
                 <a.icon className="size-5" />
               </span>
               <div className="min-w-0">
@@ -421,7 +432,7 @@ export default async function AdminPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-muted-foreground">Detalle completo</h2>
+        <h2 className="mb-3 text-base font-semibold">Detalle completo</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {grupos.map((grupo) => (
             <Card key={grupo.titulo}>

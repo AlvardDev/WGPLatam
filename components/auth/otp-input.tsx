@@ -15,12 +15,15 @@ export function OtpInput({
   onComplete,
   disabled,
   invalid,
+  shakeKey = 0,
 }: {
   value: string;
   onChange: (value: string) => void;
   onComplete?: (value: string) => void;
   disabled?: boolean;
   invalid?: boolean;
+  /** Cambia en cada código rechazado: las casillas tiemblan una vez. */
+  shakeKey?: number;
 }) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -37,7 +40,12 @@ export function OtpInput({
   };
 
   return (
-    <div className="flex justify-between gap-2" role="group" aria-label="Código de 6 dígitos">
+    <div
+      key={shakeKey}
+      className={cn("flex justify-between gap-2", shakeKey > 0 && "animate-shake")}
+      role="group"
+      aria-label="Código de 6 dígitos"
+    >
       {Array.from({ length: LENGTH }, (_, i) => (
         <input
           key={i}
@@ -45,6 +53,7 @@ export function OtpInput({
             refs.current[i] = el;
           }}
           id={i === 0 ? "code" : undefined}
+          autoFocus={i === 0}
           value={value[i] ?? ""}
           inputMode="numeric"
           autoComplete={i === 0 ? "one-time-code" : "off"}
@@ -68,7 +77,7 @@ export function OtpInput({
             else if (e.key === "ArrowRight" && i < LENGTH - 1) refs.current[i + 1]?.focus();
           }}
           className={cn(
-            "h-12 w-full min-w-0 rounded-lg border border-input bg-transparent text-center text-xl font-semibold tabular-nums outline-none transition-colors",
+            "h-12 w-full min-w-0 rounded-xl border border-input bg-muted/40 focus-visible:bg-background text-center text-xl font-semibold tabular-nums outline-none transition-colors",
             "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
             invalid && "border-destructive",
           )}

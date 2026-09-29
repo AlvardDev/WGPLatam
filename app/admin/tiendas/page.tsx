@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { CreateStoreDialog } from "./create-store-dialog";
 import { EditStoreDialog } from "./edit-store-dialog";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Tiendas" };
 
@@ -44,13 +45,11 @@ export default async function TiendasPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Tiendas</h1>
-          <p className="text-sm text-muted-foreground">Ubicaciones donde se activan garantías.</p>
-        </div>
-        <CreateStoreDialog />
-      </div>
+      <PageHeader
+        title="Tiendas"
+        description="Ubicaciones donde se activan garantías."
+        actions={<CreateStoreDialog />}
+      />
 
       <form className="max-w-sm">
         <Input type="search" name="q" placeholder="Buscar por nombre o código..." defaultValue={q ?? ""} />
@@ -61,6 +60,7 @@ export default async function TiendasPage({
           icon={Store}
           title={q ? "Sin resultados" : "Todavía no hay tiendas"}
           description={q ? `Nada coincide con "${q}".` : "Crea la primera tienda para poder invitar vendedores."}
+          action={!q ? <CreateStoreDialog /> : undefined}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -80,7 +80,7 @@ export default async function TiendasPage({
                   <TableCell className="font-mono text-sm">{s.code}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                      <Link href={`/admin/tiendas/${s.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                         {s.name}
                       </Link>
                       <EditStoreDialog store={s} />

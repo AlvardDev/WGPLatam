@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { StoreEditForm } from "./store-edit-form";
 import { StoreActiveToggle } from "./store-active-toggle";
+import { PageHeader } from "@/components/layout/page-header";
+import { DeleteEntityDialog } from "@/components/admin/delete-entity-dialog";
 
 export const metadata: Metadata = { title: "Tienda" };
 
@@ -25,18 +27,22 @@ export default async function TiendaDetallePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{store.name}</h1>
-            <p className="font-mono text-sm text-muted-foreground">{store.code}</p>
-          </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Tiendas", href: "/admin/tiendas" }, { label: store.name }]}
+        title={store.name}
+        description={<span className="font-mono">{store.code}</span>}
+        badge={
           <Badge variant={store.is_active ? "success" : "danger"}>
             {store.is_active ? "Activa" : "Inactiva"}
           </Badge>
-        </div>
-        <StoreActiveToggle id={store.id} isActive={store.is_active} />
-      </div>
+        }
+        actions={
+          <>
+            <StoreActiveToggle id={store.id} isActive={store.is_active} />
+            <DeleteEntityDialog entity="store" id={store.id} label={store.name} redirectTo="/admin/tiendas" />
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminActions } from "./admin-actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const metadata: Metadata = { title: "Administrador" };
 
@@ -36,15 +38,17 @@ export default async function AdministradorDetallePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{admin.full_name}</h1>
+      <PageHeader
+        breadcrumbs={[{ label: "Administradores", href: "/admin/administradores" }, { label: admin.full_name }]}
+        leading={<UserAvatar name={admin.full_name} size="lg" />}
+        title={admin.full_name}
+        badge={
           <Badge variant={admin.is_active ? "success" : "danger"}>
             {admin.is_active ? "Activo" : "Desactivado"}
           </Badge>
-        </div>
-        <AdminActions id={admin.id} isActive={admin.is_active} />
-      </div>
+        }
+        actions={<AdminActions id={admin.id} isActive={admin.is_active} />}
+      />
 
       <Card>
         <CardHeader>

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SellerActions } from "./seller-actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const metadata: Metadata = { title: "Vendedor" };
 
@@ -33,15 +35,17 @@ export default async function VendedorDetallePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{seller.full_name}</h1>
+      <PageHeader
+        breadcrumbs={[{ label: "Vendedores", href: "/admin/vendedores" }, { label: seller.full_name }]}
+        leading={<UserAvatar name={seller.full_name} size="lg" />}
+        title={seller.full_name}
+        badge={
           <Badge variant={seller.is_active ? "success" : "danger"}>
             {seller.is_active ? "Activo" : "Desactivado"}
           </Badge>
-        </div>
-        <SellerActions id={seller.id} isActive={seller.is_active} />
-      </div>
+        }
+        actions={<SellerActions id={seller.id} isActive={seller.is_active} />}
+      />
 
       <Card>
         <CardHeader>

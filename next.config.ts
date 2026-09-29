@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
   // pero React nunca termina de hidratar (ver docs/PROGRESS.md, bug
   // encontrado al verificar login E2E). No afecta producción.
   allowedDevOrigins: ["127.0.0.1"],
+  // El comprobante PDF lee el logo del disco (fs); sin esto la función
+  // serverless de producción podría no incluir el archivo.
+  outputFileTracingIncludes: {
+    "/api/garantias/*/comprobante": ["./public/wgp-logo.png"],
+  },
 };
 
 export default nextConfig;

@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InviteAdminDialog } from "./invite-admin-dialog";
+import { PageHeader } from "@/components/layout/page-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const metadata: Metadata = { title: "Administradores" };
 
@@ -55,13 +57,11 @@ export default async function AdministradoresPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Administradores</h1>
-          <p className="text-sm text-muted-foreground">Cuentas admin del cliente dueño del negocio.</p>
-        </div>
-        <InviteAdminDialog />
-      </div>
+      <PageHeader
+        title="Administradores"
+        description="Cuentas admin del cliente dueño del negocio."
+        actions={<InviteAdminDialog />}
+      />
 
       <form className="flex max-w-lg items-center gap-2">
         <Input type="search" name="q" placeholder="Buscar por nombre..." defaultValue={q ?? ""} className="max-w-xs" />
@@ -72,6 +72,7 @@ export default async function AdministradoresPage({
           icon={UserCog}
           title={q ? "Sin resultados" : "Todavía no hay administradores"}
           description={q ? "Nada coincide con ese filtro." : "Invita a la primera cuenta admin."}
+          action={!q ? <InviteAdminDialog /> : undefined}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -86,9 +87,12 @@ export default async function AdministradoresPage({
               {admins.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>
-                    <Link href={`/admin/administradores/${a.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
-                      {a.full_name}
-                    </Link>
+                    <div className="flex items-center gap-2.5">
+                      <UserAvatar name={a.full_name} />
+                      <Link href={`/admin/administradores/${a.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                        {a.full_name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={a.is_active ? "success" : "danger"}>

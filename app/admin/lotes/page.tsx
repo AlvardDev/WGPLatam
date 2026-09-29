@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { CreateLotDialog } from "./create-lot-dialog";
 import { Select } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/page-header";
+import { formatDuration } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Lotes" };
 
@@ -59,13 +61,11 @@ export default async function LotesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Lotes</h1>
-          <p className="text-sm text-muted-foreground">Origen y garantía por defecto de los seriales.</p>
-        </div>
-        <CreateLotDialog products={products ?? []} />
-      </div>
+      <PageHeader
+        title="Lotes"
+        description="Origen y garantía por defecto de los seriales."
+        actions={<CreateLotDialog products={products ?? []} />}
+      />
 
       <form className="flex max-w-sm items-center gap-2">
         <Select
@@ -82,6 +82,7 @@ export default async function LotesPage({
           icon={Boxes}
           title="Todavía no hay lotes"
           description="Crea un lote para poder cargar seriales bajo un producto."
+          action={<CreateLotDialog products={products ?? []} />}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -99,12 +100,12 @@ export default async function LotesPage({
               {lots.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <Link href={`/admin/lotes/${l.id}`} className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                    <Link href={`/admin/lotes/${l.id}`} className="row-link font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {l.code}
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm">{l.products?.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.warranty_days} días</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDuration(l.warranty_days)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {l.imported_count}
                     {l.expected_count ? ` / ${l.expected_count}` : ""}

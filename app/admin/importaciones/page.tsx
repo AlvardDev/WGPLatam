@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Importaciones" };
 
@@ -58,22 +59,23 @@ export default async function ImportacionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Importaciones</h1>
-          <p className="text-sm text-muted-foreground">Carga masiva de seriales por archivo CSV o Excel.</p>
-        </div>
-        <Button
-          data-onboarding-target="new-import"
-          render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>}
-        />
-      </div>
+      <PageHeader
+        title="Importaciones"
+        description="Carga masiva de seriales por archivo CSV o Excel."
+        actions={
+          <Button
+            data-onboarding-target="new-import"
+            render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>}
+          />
+        }
+      />
 
       {!data || data.length === 0 ? (
         <EmptyState
           icon={Upload}
           title="Todavía no hay importaciones"
           description="Crea una importación para cargar seriales masivamente en un lote."
+          action={<Button render={<Link href="/admin/importaciones/nueva">Nueva importación</Link>} />}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -91,7 +93,7 @@ export default async function ImportacionesPage() {
               {data.map((imp) => (
                 <TableRow key={imp.id}>
                   <TableCell>
-                    <Link href={`/admin/importaciones/${imp.id}`} className="text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                    <Link href={`/admin/importaciones/${imp.id}`} className="row-link text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {imp.file_name}
                     </Link>
                   </TableCell>

@@ -9,6 +9,8 @@ import { CorrectionHistory, type CorrectionRow } from "@/components/warranties/c
 import { ClaimHistory, type ClaimRow } from "@/components/warranties/claim-history";
 import { DecideCorrectionButtons } from "./decide-correction-buttons";
 import { VoidWarrantyForm } from "./void-warranty-form";
+import { PageHeader } from "@/components/layout/page-header";
+import { expiryInfo, formatDate, formatDateTime, formatDuration } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Garantía" };
 
@@ -63,28 +65,29 @@ export default async function GarantiaAdminDetallePage({
     .order("created_at", { ascending: false })
     .returns<ClaimRow[]>();
 
+  const expiry = expiryInfo(warranty.expires_at, warranty.voided_at);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{warranty.product_name}</h1>
-            {warranty.voided_at && <Badge variant="danger">Anulada</Badge>}
-          </div>
-          <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<a href={`/api/garantias/${warranty.id}/comprobante?download=1`} />}>
-            Descargar comprobante
-          </Button>
-          {!warranty.voided_at && <VoidWarrantyForm warrantyId={warranty.id} />}
-        </div>
-      </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Garantías", href: "/admin/garantias" }, { label: warranty.serial }]}
+        title={warranty.product_name}
+        description={<span className="font-mono">{warranty.serial}</span>}
+        badge={<Badge variant={expiry.variant}>{expiry.label}</Badge>}
+        actions={
+          <>
+            <Button variant="outline" render={<a href={`/api/garantias/${warranty.id}/comprobante?download=1`} />}>
+              Descargar comprobante
+            </Button>
+            {!warranty.voided_at && <VoidWarrantyForm warrantyId={warranty.id} />}
+          </>
+        }
+      />
 
       {warranty.voided_at && (
         <Card>
           <CardContent className="text-sm text-muted-foreground">
-            Anulada el {new Date(warranty.voided_at).toLocaleString("es")}. Motivo: {warranty.voided_reason}
+            Anulada el {formatDateTime(warranty.voided_at)}. Motivo: {warranty.voided_reason}
           </CardContent>
         </Card>
       )}
@@ -104,15 +107,15 @@ export default async function GarantiaAdminDetallePage({
           </div>
           <div>
             <p className="text-muted-foreground">Activada</p>
-            <p className="font-medium">{new Date(warranty.activated_at).toLocaleString("es")}</p>
+            <p className="font-medium">{formatDateTime(warranty.activated_at)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Vence</p>
-            <p className="font-medium">{new Date(warranty.expires_at).toLocaleDateString("es")}</p>
+            <p className="font-medium">{formatDate(warranty.expires_at)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Duración</p>
-            <p className="font-medium">{warranty.duration_days} días</p>
+            <p className="font-medium">{formatDuration(warranty.duration_days)}</p>
           </div>
         </CardContent>
       </Card>

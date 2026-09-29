@@ -12,6 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/page-header";
+import { ExpiryCell } from "@/components/warranties/expiry-cell";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -23,7 +26,7 @@ export default async function TiendaPage() {
   const supabase = await createClient();
   const { data: warranties, error } = await supabase
     .from("warranties")
-    .select("id, product_name, serial, customer_name, activated_at, expires_at")
+    .select("id, product_name, serial, customer_name, activated_at, expires_at, voided_at")
     .order("activated_at", { ascending: false })
     .limit(100);
 
@@ -31,13 +34,11 @@ export default async function TiendaPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Inicio</h1>
-          <p className="text-sm text-muted-foreground">Garantías activadas por tu tienda.</p>
-        </div>
-        <Button render={<Link href="/tienda/activar">Activar garantía</Link>} />
-      </div>
+      <PageHeader
+        title="Inicio"
+        description="Garantías activadas por tu tienda."
+        actions={<Button render={<Link href="/tienda/activar">Activar garantía</Link>} />}
+      />
 
       {!warranties || warranties.length === 0 ? (
         <EmptyState
@@ -62,17 +63,17 @@ export default async function TiendaPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/tienda/garantias/${w.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                    <Link href={`/tienda/garantias/${w.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
                   </TableCell>
                   <TableCell className="font-mono text-sm">{w.serial}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{w.customer_name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(w.activated_at).toLocaleDateString("es")}
+                    <span title={formatDateTime(w.activated_at)}>{timeAgo(w.activated_at)}</span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(w.expires_at).toLocaleDateString("es")}
+                    <ExpiryCell expiresAt={w.expires_at} voidedAt={w.voided_at} />
                   </TableCell>
                 </TableRow>
               ))}

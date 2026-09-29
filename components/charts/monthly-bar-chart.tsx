@@ -30,7 +30,7 @@ export function MonthlyBarChart({ data }: { data: { label: string; value: number
         ))}
       </div>
       <div className="flex-1">
-        <div className="h-56 border-b border-l">
+        <div className="h-56">
           <svg
             viewBox={`0 0 100 ${HEIGHT}`}
             preserveAspectRatio="none"
@@ -38,7 +38,24 @@ export function MonthlyBarChart({ data }: { data: { label: string; value: number
             role="img"
             aria-label="Garantías activadas por mes"
           >
+            {/* Líneas guía suaves en vez de ejes marcados */}
+            {ticks.map((t) => {
+              const y = HEIGHT - (t / max) * HEIGHT;
+              return (
+                <line
+                  key={`g-${t}`}
+                  x1={0}
+                  x2={100}
+                  y1={y}
+                  y2={y}
+                  className={t === 0 ? "stroke-border" : "stroke-border/70"}
+                  strokeDasharray={t === 0 ? undefined : "3 4"}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
             {data.map((d, i) => {
+              const isCurrent = i === data.length - 1;
               const barHeight = max > 0 ? Math.max((d.value / max) * HEIGHT, d.value > 0 ? 3 : 0) : 0;
               const x = i * slot + (slot - barWidth) / 2;
               return (
@@ -49,7 +66,11 @@ export function MonthlyBarChart({ data }: { data: { label: string; value: number
                   width={barWidth}
                   height={barHeight}
                   rx={BAR_RADIUS}
-                  className="fill-blue-600 transition-[fill] hover:fill-blue-700"
+                  className={
+                    isCurrent
+                      ? "bar-grow fill-blue-600 transition-[fill] hover:fill-blue-700 dark:fill-blue-500"
+                      : "bar-grow fill-blue-300 transition-[fill] hover:fill-blue-500 dark:fill-blue-500/45 dark:hover:fill-blue-400"
+                  }
                 >
                   <title>{`${d.label}: ${d.value.toLocaleString("es")}`}</title>
                 </rect>
@@ -58,8 +79,11 @@ export function MonthlyBarChart({ data }: { data: { label: string; value: number
           </svg>
         </div>
         <div className="mt-1 flex text-center text-xs text-muted-foreground">
-          {data.map((d) => (
-            <span key={d.label} className="flex-1">
+          {data.map((d, i) => (
+            <span
+              key={d.label}
+              className={i === data.length - 1 ? "flex-1 font-semibold text-blue-700 dark:text-blue-300" : "flex-1"}
+            >
               {d.label}
             </span>
           ))}

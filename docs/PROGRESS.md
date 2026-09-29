@@ -2257,3 +2257,34 @@ timestamp de aplicación (no el del nombre de archivo).
   `value`/`onValueChange` para react-hook-form vía `Controller`) reemplaza los 15 `<select>`
   nativos (filtros de auditoría, lotes, seriales, vendedores; formularios de lote, vendedor, serial
   e importación).
+
+## Nota 2026-09-29: pulido visual grande + borrado protegido
+
+- **Encabezado único** (`components/layout/page-header.tsx`) en las 25 páginas: título, descripción,
+  badge, acciones y ruta (`Productos › X`) en los detalles.
+- **Fechas/duraciones** (`lib/format.ts`, con test): "hace 2 h", "1 año"/"6 meses", vencimiento con
+  color (`components/warranties/expiry-cell.tsx`: vigente / vence en N días / vencida / anulada).
+  La actividad del panel mostraba solo la hora aunque el evento fuera de otro día: ahora "hace…".
+- **Panel**: KPIs con color, conteo animado (`components/ui/count-up.tsx`, sin estilos inline por la
+  CSP) y % vs mes anterior (datos reales; se omite si el mes anterior fue 0). **Bug real corregido**:
+  el anillo de estados sumaba "Por vencer" dos veces (es un subconjunto de "Activas"); ahora
+  "Vigentes" excluye las por vencer. Barras con líneas guía suaves, mes actual resaltado y animación.
+- **Avatares** de iniciales con color fijo por nombre (`components/ui/user-avatar.tsx`).
+- **Carga**: esqueleto por módulo (`components/state/page-skeletons.tsx` + `loading.tsx` por ruta) y
+  fade al navegar (`app/admin/template.tsx`, `app/tienda/template.tsx`).
+- **Filas clicables** (clase `row-link` en `globals.css`); estados vacíos con ícono y acción;
+  sidebar con indicador animado y modo contraído (preferencia en `localStorage`, con try/catch).
+- **Tipografía**: títulos `font-semibold`, `tabular-nums` en tablas.
+- **Login/MFA**: tarjeta, luces animadas en el panel de marca, spinner al ingresar, casillas que
+  tiemblan con código incorrecto.
+- **Comprobante PDF** rediseñado (franja con logo, estado con color, fechas clave, tarjetas). Logo
+  leído del disco con `outputFileTracingIncludes` en `next.config.ts`. Sin QR: no existe una página
+  pública de verificación a la que apuntar.
+- **Auditoría**: el detalle muestra "Campo: antes → después" en español; el JSON crudo queda en
+  "Ver datos técnicos".
+- **Borrar tienda/producto/lote/serial**: botón en el detalle (`components/admin/delete-entity-dialog.tsx`,
+  `lib/actions/deletion.ts`). Si hay historial, lo lista y **no deja borrar** (sugiere desactivar); si
+  no, pide confirmar. Migración `20260929010000_delete_serial.sql` aplicada al proyecto real + pgTAP
+  `16_delete_serial.sql`.
+- Verificado: `tsc` OK, vitest 105/105, `next build` OK, lint sin errores nuevos. Sin revisión visual
+  en navegador (extensión de Chrome desconectada; admin requiere sesión + MFA).

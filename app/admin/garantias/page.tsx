@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/state/empty-state";
 import {
   Table,
@@ -12,6 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/page-header";
+import { ExpiryCell } from "@/components/warranties/expiry-cell";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Garantías" };
 
@@ -45,10 +47,7 @@ export default async function GarantiasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Garantías</h1>
-        <p className="text-sm text-muted-foreground">Últimas 100 activaciones, de todas las tiendas.</p>
-      </div>
+      <PageHeader title="Garantías" description="Últimas 100 activaciones, de todas las tiendas." />
 
       <div data-onboarding-target="warranties-list">
       {!warranties || warranties.length === 0 ? (
@@ -70,14 +69,9 @@ export default async function GarantiasPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/admin/garantias/${w.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                    <Link href={`/admin/garantias/${w.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
-                    {w.voided_at && (
-                      <Badge variant="danger" className="ml-2">
-                        Anulada
-                      </Badge>
-                    )}
                   </TableCell>
                   <TableCell className="font-mono text-sm">{w.serial}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -85,10 +79,10 @@ export default async function GarantiasPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{w.customer_name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(w.activated_at).toLocaleDateString("es")}
+                    <span title={formatDateTime(w.activated_at)}>{timeAgo(w.activated_at)}</span>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(w.expires_at).toLocaleDateString("es")}
+                  <TableCell>
+                    <ExpiryCell expiresAt={w.expires_at} voidedAt={w.voided_at} />
                   </TableCell>
                 </TableRow>
               ))}

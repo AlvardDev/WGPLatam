@@ -20,6 +20,7 @@ import {
 } from "@/lib/actions/warranties";
 import { customerSchema, type CustomerInput } from "@/lib/validation/warranties";
 import { BarcodeScanner } from "./barcode-scanner";
+import { formatDate, formatDuration } from "@/lib/format";
 
 type Phase = "idle" | "not_found" | "found" | "confirming" | "success";
 
@@ -159,11 +160,11 @@ export function ActivationFlow() {
             </div>
             <div>
               <dt className="text-muted-foreground">Inicio</dt>
-              <dd className="font-medium">{new Date(activated.activated_at).toLocaleDateString("es")}</dd>
+              <dd className="font-medium">{formatDate(activated.activated_at)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Vence</dt>
-              <dd className="font-medium">{new Date(activated.expires_at).toLocaleDateString("es")}</dd>
+              <dd className="font-medium">{formatDate(activated.expires_at)}</dd>
             </div>
           </dl>
           <div className="flex gap-2">
@@ -249,7 +250,7 @@ export function ActivationFlow() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Garantía de {lookup.warranty_duration_days} días desde la activación.
+              Garantía de {formatDuration(lookup.warranty_duration_days)} desde la activación.
             </p>
 
             {lookup.status === "AVAILABLE" && (lookup.barcode || lookup.barcode_waiver_status === "APPROVED") && (
@@ -311,7 +312,7 @@ export function ActivationFlow() {
           <CardHeader>
             <CardTitle>Datos del cliente</CardTitle>
             <CardDescription>
-              {lookup.product_name} · {lookup.serial} · {lookup.warranty_duration_days} días de garantía
+              {lookup.product_name} · {lookup.serial} · {formatDuration(lookup.warranty_duration_days)} de garantía
             </CardDescription>
           </CardHeader>
           <CardContent>

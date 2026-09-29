@@ -18,6 +18,8 @@ import { EditSellerDialog } from "./edit-seller-dialog";
 import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
 import { Select } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/page-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const metadata: Metadata = { title: "Vendedores" };
 
@@ -63,16 +65,16 @@ export default async function VendedoresPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Vendedores</h1>
-          <p className="text-sm text-muted-foreground">Cuentas de tienda que pueden activar garantías.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/admin/vendedores/pendientes"><UserCheck className="size-4" />Pendientes</Link>} />
-          <CreateSellerDialog stores={stores ?? []} />
-        </div>
-      </div>
+      <PageHeader
+        title="Vendedores"
+        description="Cuentas de tienda que pueden activar garantías."
+        actions={
+          <>
+            <Button variant="outline" render={<Link href="/admin/vendedores/pendientes"><UserCheck className="size-4" />Pendientes</Link>} />
+            <CreateSellerDialog stores={stores ?? []} />
+          </>
+        }
+      />
 
       <form className="flex max-w-lg flex-wrap items-center gap-2">
         <Input type="search" name="q" placeholder="Buscar por nombre..." defaultValue={q ?? ""} className="max-w-xs" />
@@ -97,6 +99,7 @@ export default async function VendedoresPage({
                 ? "Crea una tienda antes de dar de alta al primer vendedor."
                 : "Crea al primer vendedor de una tienda."
           }
+          action={!q && !tienda && (stores ?? []).length > 0 ? <CreateSellerDialog stores={stores ?? []} /> : undefined}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
@@ -115,8 +118,9 @@ export default async function VendedoresPage({
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar name={s.full_name} />
+                        <Link href={`/admin/vendedores/${s.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                           {s.full_name}
                         </Link>
                         <EditSellerDialog seller={s} stores={stores ?? []} />

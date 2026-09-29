@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/page-header";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Reclamos" };
 
@@ -54,10 +56,7 @@ export default async function ReclamosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Reclamos</h1>
-        <p className="text-sm text-muted-foreground">Últimos 100 reclamos, de todas las tiendas.</p>
-      </div>
+      <PageHeader title="Reclamos" description="Últimos 100 reclamos, de todas las tiendas." />
 
       <div data-onboarding-target="claims-list">
       {!claims || claims.length === 0 ? (
@@ -79,7 +78,7 @@ export default async function ReclamosPage() {
               {claims.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <Link href={`/admin/reclamos/${c.id}`} className="font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                    <Link href={`/admin/reclamos/${c.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                       {c.reason}
                     </Link>
                   </TableCell>
@@ -96,7 +95,7 @@ export default async function ReclamosPage() {
                     <Badge variant={STATUS_VARIANT[c.status] ?? "secondary"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("es")}
+                    <span title={formatDateTime(c.created_at)}>{timeAgo(c.created_at)}</span>
                   </TableCell>
                 </TableRow>
               ))}

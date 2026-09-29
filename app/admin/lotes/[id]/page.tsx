@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { LotEditForm } from "./lot-edit-form";
 import { LotActiveToggle } from "./lot-active-toggle";
+import { PageHeader } from "@/components/layout/page-header";
+import { DeleteEntityDialog } from "@/components/admin/delete-entity-dialog";
 
 export const metadata: Metadata = { title: "Lote" };
 
@@ -60,20 +62,23 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{lot.code}</h1>
-            <p className="text-sm text-muted-foreground">
-              {lot.products?.name} ({lot.products?.code})
-            </p>
-          </div>
+      <PageHeader
+        breadcrumbs={[{ label: "Lotes", href: "/admin/lotes" }, { label: lot.code }]}
+        title={lot.code}
+        mono
+        description={`${lot.products?.name ?? ""} (${lot.products?.code ?? ""})`}
+        badge={
           <Badge variant={lot.is_active ? "success" : "danger"}>
             {lot.is_active ? "Activo" : "Inactivo"}
           </Badge>
-        </div>
-        <LotActiveToggle id={lot.id} isActive={lot.is_active} />
-      </div>
+        }
+        actions={
+          <>
+            <LotActiveToggle id={lot.id} isActive={lot.is_active} />
+            <DeleteEntityDialog entity="lot" id={lot.id} label={lot.code} redirectTo="/admin/lotes" />
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>

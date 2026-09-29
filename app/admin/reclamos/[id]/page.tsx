@@ -6,6 +6,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AssignClaimButton, CloseClaimButton, DecideClaimForm } from "./claim-actions";
 import { TechnicalReportForm } from "./technical-report-form";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Reclamo" };
 
@@ -74,17 +75,16 @@ export default async function ReclamoDetallePage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">{claim.reason}</h1>
-            <Badge variant={STATUS_VARIANT[claim.status] ?? "secondary"}>{STATUS_LABEL[claim.status] ?? claim.status}</Badge>
-          </div>
-          <Link href={`/admin/garantias/${claim.warranty_id}`} className="text-sm text-muted-foreground hover:underline">
+      <PageHeader
+        breadcrumbs={[{ label: "Reclamos", href: "/admin/reclamos" }, { label: claim.reason }]}
+        title={claim.reason}
+        badge={<Badge variant={STATUS_VARIANT[claim.status] ?? "secondary"}>{STATUS_LABEL[claim.status] ?? claim.status}</Badge>}
+        description={
+          <Link href={`/admin/garantias/${claim.warranty_id}`} className="hover:text-foreground hover:underline">
             {claim.warranties ? `${claim.warranties.product_name} · ${claim.warranties.serial}` : "Ver garantía"}
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>

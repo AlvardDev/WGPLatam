@@ -1,6 +1,9 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { WarrantyPdfDocument } from "@/lib/pdf/warranty-pdf";
+import { expiryInfo, formatDate, formatDateTime, formatDuration } from "@/lib/format";
 
 // PDF bajo demanda, nunca almacenado (ver docs/ARCHITECTURE.md, "PDF" y el
 // mismo patrón ya usado en app/admin/importaciones/[id]/errores/route.ts).
@@ -53,8 +56,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq("id", true)
     .single();
 
+  // Sin logo el PDF se genera igual (con el nombre de la empresa en la franja).
+  const logo = await readFile(path.join(process.cwd(), "public", "wgp-logo.png"))
+    .then((b) => `data:image/png;base64,${b.toString("base64")}`)
+    .catch(() => null);
+  const expiry = expiryInfo(warranty.expires_at, warranty.voided_at);
+  const tone = { success: "ok", warning: "warn", danger: "bad" }[expiry.variant as string] ?? "muted";
+
   const buffer = await renderToBuffer(
     WarrantyPdfDocument({
+      folio: warranty.id.slice(0, 8).toUpperCase(),
+      logo,
+      status: { label: expiry.label.toUpperCase(), tone: tone as "ok" | "warn" | "bad" | "muted" },
       company: {
         name: settings?.company_name || "—",
         legalName: settings?.company_legal_name || "",
@@ -73,9 +86,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       serial: warranty.serial,
       barcode: warranty.barcode,
       lotCode: warranty.lot_code,
-      activatedAt: new Date(warranty.activated_at).toLocaleString("es"),
-      expiresAt: new Date(warranty.expires_at).toLocaleDateString("es"),
-      durationDays: warranty.duration_days,
+      activatedAt: formatDate(warranty.activated_at),
+      expiresAt: formatDate(warranty.expires_at),
+      duration: formatDuration(warranty.duration_days),
       storeAttentionDays: warranty.store_attention_days,
       conditions: warranty.conditions,
       exclusions: warranty.exclusions,
@@ -84,9 +97,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         nationalId: warranty.customer_national_id,
         whatsapp: warranty.customer_whatsapp,
       },
-      voidedAt: warranty.voided_at ? new Date(warranty.voided_at).toLocaleString("es") : null,
+      voidedAt: warranty.voided_at ? formatDateTime(warranty.voided_at) : null,
       voidedReason: warranty.voided_reason,
-      issuedAt: new Date().toLocaleString("es"),
+      issuedAt: formatDateTime(new Date()),
     }),
   );
 

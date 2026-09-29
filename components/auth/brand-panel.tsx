@@ -21,15 +21,25 @@ export function BrandPanel() {
         aria-hidden
         className="pointer-events-none absolute -bottom-32 -left-32 size-[26rem] rotate-45 bg-blue-500/[0.06]"
       />
+      {/* Luces suaves que flotan lento (CSS, sin JS). */}
+      <div aria-hidden className="auth-glow pointer-events-none absolute -top-24 right-[-6rem] size-[28rem] rounded-full bg-blue-500/20 blur-3xl" />
+      <div aria-hidden className="auth-glow-slow pointer-events-none absolute bottom-10 left-1/4 size-72 rounded-full bg-indigo-500/15 blur-3xl" />
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-6 text-center">
-        <Image src="/wgp-logo.png" alt="WGP" width={1572} height={1001} className="w-64 max-w-full" priority />
-        <p className="text-xs font-semibold tracking-[0.35em] text-slate-300">
+        <Image
+          src="/wgp-logo.png"
+          alt="WGP"
+          width={1572}
+          height={1001}
+          className="w-64 max-w-full animate-in fade-in zoom-in-95 duration-700"
+          priority
+        />
+        <p className="animate-in text-xs font-semibold tracking-[0.35em] text-slate-300 fade-in slide-in-from-bottom-2 duration-700 fill-mode-backwards delay-200">
           GARANTÍAS · PRODUCTOS · CONFIANZA
         </p>
       </div>
 
-      <div className="relative flex flex-col items-center gap-3 pb-2 text-center">
+      <div className="relative flex animate-in flex-col items-center gap-3 pb-2 text-center fade-in duration-700 fill-mode-backwards delay-500">
         <span className="flex size-11 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10">
           <ShieldCheck className="size-5 text-blue-400" />
         </span>

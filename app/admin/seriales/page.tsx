@@ -10,6 +10,7 @@ import { CreateSerialDialog } from "./create-serial-dialog";
 import { SerialesTable, type SerialRow } from "./seriales-table";
 import { PrevPageButton } from "./prev-page-button";
 import { Select } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = { title: "Seriales" };
 
@@ -129,25 +130,30 @@ export default async function SerialesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-blue-900 dark:text-blue-100">Seriales</h1>
-          <p className="text-sm text-muted-foreground">Gestiona y consulta todos los seriales de tus productos.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/admin/importaciones/nueva" />}>
-            <Upload className="size-4" />
-            Importar seriales
-          </Button>
-          <CreateSerialDialog products={products ?? []} lots={lots ?? []} />
-        </div>
-      </div>
+      <PageHeader
+        title="Seriales"
+        description="Gestiona y consulta todos los seriales de tus productos."
+        actions={
+          <>
+            <Button variant="outline" render={<Link href="/admin/importaciones/nueva" />}>
+              <Upload className="size-4" />
+              Importar seriales
+            </Button>
+            <CreateSerialDialog products={products ?? []} lots={lots ?? []} />
+          </>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard icon={ScanBarcode} label="Total de seriales" value={(totalSeriales ?? 0).toLocaleString("es")} />
-        <KpiCard icon={CheckCircle2} label="Disponibles" value={(disponibles ?? 0).toLocaleString("es")} />
-        <KpiCard icon={ShieldCheck} label="Activos (con garantía)" value={(activos ?? 0).toLocaleString("es")} />
-        <KpiCard icon={Lock} label="Bloqueados / Anulados" value={(bloqueados ?? 0).toLocaleString("es")} alert={(bloqueados ?? 0) > 0} />
+        <KpiCard icon={ScanBarcode} label="Total de seriales" value={totalSeriales ?? 0} />
+        <KpiCard icon={CheckCircle2} tone="emerald" label="Disponibles" value={disponibles ?? 0} />
+        <KpiCard icon={ShieldCheck} tone="violet" label="Activos (con garantía)" value={activos ?? 0} />
+        <KpiCard
+          icon={Lock}
+          tone={(bloqueados ?? 0) > 0 ? "red" : "amber"}
+          label="Bloqueados / Anulados"
+          value={bloqueados ?? 0}
+        />
       </div>
 
       <form className="flex flex-wrap items-end gap-3 rounded-2xl bg-card p-4 shadow-soft">

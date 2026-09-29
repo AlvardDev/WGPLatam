@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDate, formatDuration } from "@/lib/format";
 
 export type SerialRow = {
   id: string;
@@ -140,7 +141,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                   />
                 </TableCell>
                 <TableCell>
-                  <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                  <Link href={`/admin/seriales/${s.id}`} className="row-link font-mono text-sm font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
                     {s.serial}
                   </Link>
                 </TableCell>
@@ -153,11 +154,11 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {s.warranty ? `${Math.round(s.warranty.duration_days / 30)} meses` : "—"}
+                  {s.warranty ? formatDuration(s.warranty.duration_days) : "—"}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{s.warranty?.customer_name ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(s.created_at).toLocaleDateString("es")}
+                  {formatDate(s.created_at)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" render={<Link href={`/admin/seriales/${s.id}`} aria-label="Ver detalle" />}>
