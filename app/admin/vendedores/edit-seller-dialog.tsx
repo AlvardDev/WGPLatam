@@ -15,7 +15,7 @@ import { updateSeller } from "@/lib/actions/sellers";
 import { EditSellerForm } from "./edit-seller-form";
 
 type Store = { id: string; code: string; name: string };
-type Seller = { id: string; full_name: string; store_id: string };
+type Seller = { id: string; full_name: string; store_id: string; email?: string | null };
 
 export function EditSellerDialog({ seller, stores }: { seller: Seller; stores: Store[] }) {
   const [open, setOpen] = useState(false);
@@ -36,6 +36,8 @@ export function EditSellerDialog({ seller, stores }: { seller: Seller; stores: S
         </DialogHeader>
         <EditSellerForm
           stores={stores}
+          email={seller.email}
+          sellerId={seller.id}
           defaultValues={{ fullName: seller.full_name, storeId: seller.store_id }}
           onSubmit={(values) => updateSeller(seller.id, values)}
           onSuccess={() => {

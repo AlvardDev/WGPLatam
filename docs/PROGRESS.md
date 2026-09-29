@@ -2307,3 +2307,16 @@ timestamp de aplicación (no el del nombre de archivo).
   que se cierra solo; después, resumen con "Descargar comprobante" y "Activar otra".
 - Verificado: `tsc` OK, vitest 109/109, `next build` OK, lint sin errores nuevos. Sin revisión
   visual en navegador.
+
+## Nota 2026-09-29 (3): correo y contraseña de vendedores
+
+- La contraseña **no se puede mostrar**: Supabase Auth solo guarda su hash (nadie puede leerla, ni
+  el admin ni la base). En su lugar: botón **"Cambiar contraseña"** en el detalle del vendedor
+  (`app/admin/vendedores/[id]/change-password-dialog.tsx` → `setSellerPassword` en
+  `lib/actions/sellers.ts`: `requireAdmin()`, verifica por RLS que el destino sea `seller`, luego
+  `auth.admin.updateUserById`). La contraseña nueva no se guarda en ningún lado de la app.
+- El **correo** (vive en `auth.users`, no en `profiles`) se muestra en la lista (bajo el nombre),
+  en el modal de editar (solo lectura) y en el detalle, junto al último ingreso.
+  `lib/auth/seller-accounts.ts` (`server-only`, service role solo después de `requireAdmin()`).
+- Pendiente conocido: el cambio de contraseña hecho por el admin no queda en `audit_logs`
+  (`log_audit_event` solo acepta login/logout); igual que el restablecimiento ya existente.

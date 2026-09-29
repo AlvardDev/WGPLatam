@@ -10,6 +10,7 @@ import {
   type CreateSellerInput,
   type UpdateSellerInput,
 } from "@/lib/validation/sellers";
+import { resolvePasswordResetSchema, type ResolvePasswordResetInput } from "@/lib/validation/registro";
 
 // Efectivamente permanente (100 años) — Supabase Auth no tiene un "ban
 // indefinido" real, solo una fecha límite muy lejana. Ver docs/PROJECT-PLAN.md:
@@ -161,4 +162,29 @@ export async function setSellerActive(
     };
   }
   return { success: true };
+}
+
+/**
+ * El admin asigna una contraseña nueva a un vendedor (la actual nunca se
+ * puede ver: Supabase Auth solo guarda su hash). Mismo mecanismo que
+ * resolvePasswordReset, pero sin solicitud previa. Se verifica por RLS que el
+ * destino sea un vendedor, para no usar la service role contra un admin.
+ */
+export async function setSellerPassword(
+  id: string,
+  input: ResolvePasswordResetInput,
+): Promise<{ error?: string }> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "No tienes permiso para hacer esto." };
+
+  const parsed = resolvePasswordResetSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+
+  const supabase = await createClient();
+  const { data: target } = await supabase.from("profiles").select("role").eq("id", id).single();
+  if (target?.role !== "seller") return { error: "Solo se puede cambiar la contraseña de un vendedor." };
+
+  const { error } = await createAdminClient().auth.admin.updateUserById(id, { password: parsed.data.password });
+  if (error) return { error: "No se pudo cambiar la contraseña." };
+  return {};
 }

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { updateSellerSchema, type UpdateSellerInput } from "@/lib/validation/sellers";
 import { Select } from "@/components/ui/select";
 
@@ -14,11 +14,15 @@ type Store = { id: string; code: string; name: string };
 
 export function EditSellerForm({
   stores,
+  email,
+  sellerId,
   defaultValues,
   onSubmit,
   onSuccess,
 }: {
   stores: Store[];
+  email?: string | null;
+  sellerId?: string;
   defaultValues: UpdateSellerInput;
   onSubmit: (values: UpdateSellerInput) => Promise<{ error?: string }>;
   onSuccess: () => void;
@@ -50,6 +54,21 @@ export function EditSellerForm({
   return (
     <form onSubmit={handleSubmit(onValid)} noValidate>
       <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-email">Correo (usuario para entrar)</FieldLabel>
+          <Input id="edit-email" value={email ?? "—"} readOnly disabled />
+          <FieldDescription>
+            La contraseña no se puede ver.{" "}
+            {sellerId ? (
+              <a href={`/admin/vendedores/${sellerId}`} className="text-blue-700 underline-offset-4 hover:underline dark:text-blue-300">
+                Cámbiala desde el detalle del vendedor
+              </a>
+            ) : (
+              "Se cambia desde el detalle del vendedor"
+            )}
+            .
+          </FieldDescription>
+        </Field>
         <Field data-invalid={!!errors.fullName}>
           <FieldLabel htmlFor="edit-fullName">Nombre completo</FieldLabel>
           <Input id="edit-fullName" {...register("fullName")} />

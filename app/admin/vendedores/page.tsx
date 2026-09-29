@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { CreateSellerDialog } from "./create-seller-dialog";
 import { EditSellerDialog } from "./edit-seller-dialog";
+import { getSellerAccounts } from "@/lib/auth/seller-accounts";
 import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
 import { Select } from "@/components/ui/select";
@@ -65,6 +66,7 @@ export default async function VendedoresPage({
   if (error && error.code !== "PGRST103") throw new Error("No se pudieron cargar los vendedores.");
 
   const { data: inviteStatuses } = await supabase.rpc("admin_list_seller_invite_status");
+  const accounts = await getSellerAccounts((sellers ?? []).map((s) => s.id));
   const inviteStatusById = new Map(
     ((inviteStatuses ?? []) as { id: string; invite_status: string }[]).map((r) => [r.id, r.invite_status]),
   );
@@ -126,10 +128,15 @@ export default async function VendedoresPage({
                     <TableCell data-label="Nombre">
                       <div className="flex items-center gap-2.5">
                         <UserAvatar name={s.full_name} />
-                        <Link href={`/admin/vendedores/${s.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
-                          {s.full_name}
-                        </Link>
-                        <EditSellerDialog seller={s} stores={stores ?? []} />
+                        <div className="min-w-0">
+                          <Link href={`/admin/vendedores/${s.id}`} className="row-link font-medium text-blue-700 dark:text-blue-300 underline-offset-4 hover:underline">
+                            {s.full_name}
+                          </Link>
+                          {accounts.get(s.id)?.email ? (
+                            <p className="truncate text-xs text-muted-foreground">{accounts.get(s.id)?.email}</p>
+                          ) : null}
+                        </div>
+                        <EditSellerDialog seller={{ ...s, email: accounts.get(s.id)?.email }} stores={stores ?? []} />
                       </div>
                     </TableCell>
                     <TableCell data-label="Tienda" className="text-sm text-muted-foreground">
