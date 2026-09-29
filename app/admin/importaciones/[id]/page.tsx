@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ImportResume } from "./import-resume";
 import { PurgeStagingButton } from "./purge-staging-button";
@@ -22,12 +22,20 @@ type ImportDetail = {
   lots: { code: string; products: { name: string } | null } | null;
 };
 
-const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
-  STAGING: "outline",
-  COMMITTING: "outline",
-  COMPLETED: "secondary",
-  FAILED: "destructive",
-  CANCELLED: "destructive",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  STAGING: "info",
+  COMMITTING: "warning",
+  COMPLETED: "success",
+  FAILED: "danger",
+  CANCELLED: "neutral",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  STAGING: "Vista previa",
+  COMMITTING: "Importando",
+  COMPLETED: "Completada",
+  FAILED: "Falló",
+  CANCELLED: "Cancelada",
 };
 
 export default async function ImportacionDetallePage({ params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +62,7 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight text-blue-900">{imp.file_name}</h1>
-        <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{imp.status}</Badge>
+        <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{STATUS_LABEL[imp.status] ?? imp.status}</Badge>
       </div>
       <p className="text-sm text-muted-foreground">
         Lote: {imp.lots?.products?.name} — <span className="font-mono">{imp.lots?.code}</span>

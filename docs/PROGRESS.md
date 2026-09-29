@@ -2209,3 +2209,28 @@ nullable, funciones nuevas presentes, columna `products.photo_path`, bucket `pro
 de `serial_barcode_waivers`. Advisors de seguridad sin hallazgos nuevos. Las notas "pendiente
 aplicar migración" de arriba quedan resueltas. Las versiones en `supabase_migrations` llevan el
 timestamp de aplicación (no el del nombre de archivo).
+
+## Nota 2026-09-29: UX de formularios, estados con color y campanita
+
+- **Campanita (bug real)**: con cero novedades, `notification-bell.tsx` renderizaba
+  `DropdownMenuLabel` (base-ui `Menu.GroupLabel`) fuera de un `Menu.Group` → base-ui lanza y la
+  página caía en "This page couldn't load" al abrir el menú. Ahora es texto plano.
+- **Formularios**: `components/ui/submit-button.tsx` (spinner mientras guarda, "Cambios guardados"
+  en verde ~2 s con `useFlash`), usado en producto, lote, tienda, vendedor, ajustes, notificaciones
+  y datos del cliente. Producto/lote: validación `onTouched`, `*` en obligatorios, botón deshabilitado
+  sin cambios y aviso "Tienes cambios sin guardar", toast con descripción.
+- **Días de garantía**: `components/ui/days-input.tsx` (solo dígitos, máx. 4, sufijo "días") y
+  `lib/validation/common.ts` (`warrantyDaysSchema`, 1–9999, mensajes en español; datos reales
+  máx. 365 al momento del cambio).
+- **Errores**: `FieldError` con ícono y animación; `Field data-invalid` ahora pinta en rojo el
+  input/textarea/select de adentro (antes solo el texto, porque casi ningún input pasaba
+  `aria-invalid`).
+- **Estados**: variantes `success/warning/info/neutral/danger` en `Badge` (fondo suave + punto),
+  aplicadas a activo/inactivo, acceso de vendedores, importaciones, reclamos, correcciones,
+  seriales, garantías anuladas y auditoría; importaciones y detalle de serial muestran el estado
+  en español. Enlaces de nombres en tablas en azul.
+- **MFA**: código en 6 casillas (`components/auth/otp-input.tsx`).
+- Toaster sin `richColors`: tarjeta neutra con ícono de color y botón de cerrar.
+- Verificado: `tsc` OK, vitest 100/100 (+1 test de días), lint sin errores nuevos (los 2 errores
+  existentes están en `onboarding-spotlight.tsx`, previos). Sin verificación visual de las
+  pantallas admin (requieren sesión + MFA).

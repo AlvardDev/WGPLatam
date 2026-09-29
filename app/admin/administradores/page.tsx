@@ -86,12 +86,12 @@ export default async function AdministradoresPage({
               {admins.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>
-                    <Link href={`/admin/administradores/${a.id}`} className="font-medium hover:underline">
+                    <Link href={`/admin/administradores/${a.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                       {a.full_name}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={a.is_active ? "secondary" : "destructive"}>
+                    <Badge variant={a.is_active ? "success" : "danger"}>
                       {a.is_active ? "Activo" : "Desactivado"}
                     </Badge>
                   </TableCell>

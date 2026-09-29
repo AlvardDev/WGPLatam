@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 
 const FIELD_LABELS: Record<string, string> = {
   customer_name: "Nombre",
@@ -6,10 +6,10 @@ const FIELD_LABELS: Record<string, string> = {
   customer_whatsapp: "WhatsApp",
 };
 
-const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive"> = {
-  PENDING: "secondary",
-  APPROVED: "default",
-  REJECTED: "destructive",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
 };
 
 const STATUS_LABEL: Record<string, string> = {

@@ -31,7 +31,7 @@ export default async function TiendaDetallePage({
             <h1 className="text-2xl font-bold tracking-tight text-blue-900">{store.name}</h1>
             <p className="font-mono text-sm text-muted-foreground">{store.code}</p>
           </div>
-          <Badge variant={store.is_active ? "secondary" : "destructive"}>
+          <Badge variant={store.is_active ? "success" : "danger"}>
             {store.is_active ? "Activa" : "Inactiva"}
           </Badge>
         </div>

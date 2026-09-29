@@ -1,11 +1,11 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 
-const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive" | "outline"> = {
-  OPEN: "secondary",
-  UNDER_REVIEW: "outline",
-  APPROVED: "default",
-  REJECTED: "destructive",
-  CLOSED: "secondary",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  OPEN: "info",
+  UNDER_REVIEW: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+  CLOSED: "neutral",
 };
 
 const STATUS_LABEL: Record<string, string> = {

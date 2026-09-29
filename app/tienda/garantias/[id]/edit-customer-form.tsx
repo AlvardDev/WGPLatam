@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton, useFlash } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { customerSchema, type CustomerInput } from "@/lib/validation/warranties";
@@ -18,6 +18,7 @@ export function EditCustomerForm({
   defaultValues: CustomerInput;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [saved, flashSaved] = useFlash();
   const {
     register,
     handleSubmit,
@@ -30,8 +31,12 @@ export function EditCustomerForm({
   const onValid = (customer: CustomerInput) => {
     startTransition(async () => {
       const result = await updateWarrantyCustomerAction(warrantyId, customer);
-      if (result.error) toast.error(result.error);
-      else toast.success("Datos del cliente actualizados.");
+      if (result.error) {
+        toast.error("No se pudo guardar", { description: result.error });
+        return;
+      }
+      toast.success("Datos del cliente actualizados");
+      flashSaved();
     });
   };
 
@@ -54,9 +59,9 @@ export function EditCustomerForm({
           <FieldError errors={[errors.whatsapp]} />
           <FieldDescription>Formato internacional, con el signo +.</FieldDescription>
         </Field>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Guardando..." : "Guardar cambios"}
-        </Button>
+        <SubmitButton pending={isPending} saved={saved}>
+          Guardar cambios
+        </SubmitButton>
       </FieldGroup>
     </form>
   );

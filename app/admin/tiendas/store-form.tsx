@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import { storeSchema, storeUpdateSchema, type StoreInput, type StoreUpdateInput } from "@/lib/validation/stores";
@@ -80,9 +80,9 @@ export function StoreForm(props: Props) {
           <FieldLabel htmlFor="phone">Teléfono</FieldLabel>
           <Input id="phone" {...register("phone")} />
         </Field>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Guardando..." : isCreate ? "Crear tienda" : "Guardar cambios"}
-        </Button>
+        <SubmitButton pending={isPending}>
+          {isCreate ? "Crear tienda" : "Guardar cambios"}
+        </SubmitButton>
       </FieldGroup>
     </form>
   );

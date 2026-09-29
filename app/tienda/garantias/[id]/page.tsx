@@ -57,7 +57,7 @@ export default async function GarantiaDetallePage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">{warranty.product_name}</h1>
-            {warranty.voided_at && <Badge variant="destructive">Anulada</Badge>}
+            {warranty.voided_at && <Badge variant="danger">Anulada</Badge>}
           </div>
           <p className="font-mono text-sm text-muted-foreground">{warranty.serial}</p>
         </div>

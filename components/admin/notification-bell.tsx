@@ -5,7 +5,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -38,7 +37,9 @@ export function NotificationBell({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         {total === 0 ? (
-          <DropdownMenuLabel className="font-normal text-muted-foreground">Sin novedades</DropdownMenuLabel>
+          // Texto plano, no DropdownMenuLabel: base-ui Menu.GroupLabel exige
+          // estar dentro de <Menu.Group> y sin él tumbaba la página al abrir.
+          <p className="px-2 py-3 text-center text-sm text-muted-foreground">Sin novedades</p>
         ) : (
           <DropdownMenuGroup>
             {pendingWaiverCount > 0 && (

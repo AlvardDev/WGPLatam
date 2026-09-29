@@ -119,7 +119,7 @@ export default async function VendedoresPage({
                   <TableRow key={s.id}>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium hover:underline">
+                        <Link href={`/admin/vendedores/${s.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                           {s.full_name}
                         </Link>
                         <EditSellerDialog seller={s} stores={stores ?? []} />
@@ -129,12 +129,12 @@ export default async function VendedoresPage({
                       {s.stores ? `${s.stores.name} (${s.stores.code})` : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={s.is_active ? "secondary" : "destructive"}>
+                      <Badge variant={s.is_active ? "success" : "danger"}>
                         {s.is_active ? "Activo" : "Desactivado"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={inviteStatus === "accepted" ? "secondary" : "outline"}>
+                      <Badge variant={inviteStatus === "accepted" ? "info" : "warning"}>
                         {inviteStatus === "accepted" ? "Ingresó" : "Nunca inició sesión"}
                       </Badge>
                     </TableCell>

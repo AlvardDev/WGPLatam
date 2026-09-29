@@ -103,7 +103,7 @@ export default async function LotesPage({
               {lots.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <Link href={`/admin/lotes/${l.id}`} className="font-mono text-sm font-medium hover:underline">
+                    <Link href={`/admin/lotes/${l.id}`} className="font-mono text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
                       {l.code}
                     </Link>
                   </TableCell>
@@ -114,7 +114,7 @@ export default async function LotesPage({
                     {l.expected_count ? ` / ${l.expected_count}` : ""}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={l.is_active ? "secondary" : "destructive"}>
+                    <Badge variant={l.is_active ? "success" : "danger"}>
                       {l.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </TableCell>

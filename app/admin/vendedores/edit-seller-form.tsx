@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import { updateSellerSchema, type UpdateSellerInput } from "@/lib/validation/sellers";
@@ -69,9 +69,9 @@ export function EditSellerForm({
           </select>
           <FieldError errors={[errors.storeId]} />
         </Field>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Guardando..." : "Guardar cambios"}
-        </Button>
+        <SubmitButton pending={isPending}>
+          Guardar cambios
+        </SubmitButton>
       </FieldGroup>
     </form>
   );

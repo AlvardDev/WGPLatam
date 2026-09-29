@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { warrantyDaysSchema } from "./common";
 
 export const lotSchema = z.object({
   productId: z.uuid("Selecciona un producto"),
-  code: z.string().trim().min(1, "Requerido"),
-  warrantyDays: z.number().int().positive("Debe ser mayor que 0"),
+  code: z.string().trim().min(1, "Ingresa el código del lote"),
+  warrantyDays: warrantyDaysSchema,
   receivedOn: z.string().trim(), // "" o "YYYY-MM-DD"; "" se guarda como null
   // Informativo (decisión del usuario): nunca bloquea nada. "" = sin definir.
   expectedCount: z.string().trim(),

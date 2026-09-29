@@ -37,6 +37,14 @@ describe("productSchema", () => {
     expect(productSchema.safeParse({ ...valid, defaultWarrantyDays: 0 }).success).toBe(false);
     expect(productSchema.safeParse({ ...valid, defaultWarrantyDays: -5 }).success).toBe(false);
   });
+
+  it("rejects more than 4 digits of warranty days, decimals and empty (NaN)", () => {
+    expect(productSchema.safeParse({ ...valid, defaultWarrantyDays: 9999 }).success).toBe(true);
+    expect(productSchema.safeParse({ ...valid, defaultWarrantyDays: 10000 }).success).toBe(false);
+    expect(productSchema.safeParse({ ...valid, defaultWarrantyDays: 1.5 }).success).toBe(false);
+    const empty = productSchema.safeParse({ ...valid, defaultWarrantyDays: NaN });
+    expect(empty.error?.issues[0]?.message).toBe("Ingresa la duración en días");
+  });
 });
 
 describe("productUpdateSchema", () => {

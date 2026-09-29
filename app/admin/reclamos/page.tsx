@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/state/empty-state";
 import {
   Table,
@@ -15,12 +15,12 @@ import {
 
 export const metadata: Metadata = { title: "Reclamos" };
 
-const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive" | "outline"> = {
-  OPEN: "secondary",
-  UNDER_REVIEW: "outline",
-  APPROVED: "default",
-  REJECTED: "destructive",
-  CLOSED: "secondary",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  OPEN: "info",
+  UNDER_REVIEW: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+  CLOSED: "neutral",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -79,7 +79,7 @@ export default async function ReclamosPage() {
               {claims.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <Link href={`/admin/reclamos/${c.id}`} className="font-medium hover:underline">
+                    <Link href={`/admin/reclamos/${c.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                       {c.reason}
                     </Link>
                   </TableCell>

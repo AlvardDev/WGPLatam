@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { updateAppSettings } from "@/lib/actions/app-settings";
 import { appSettingsSchema, type AppSettingsInput } from "@/lib/validation/app-settings";
-import { Button } from "@/components/ui/button";
+import { SubmitButton, useFlash } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
@@ -67,6 +67,7 @@ const SECTIONS: {
 
 export function SettingsForm({ defaultValues }: { defaultValues: AppSettingsInput }) {
   const [isPending, startTransition] = useTransition();
+  const [saved, flashSaved] = useFlash();
   const {
     register,
     handleSubmit,
@@ -76,8 +77,12 @@ export function SettingsForm({ defaultValues }: { defaultValues: AppSettingsInpu
   const onSubmit = (values: AppSettingsInput) => {
     startTransition(async () => {
       const result = await updateAppSettings(values);
-      if (result.error) toast.error(result.error);
-      else toast.success("Configuración guardada.");
+      if (result.error) {
+        toast.error("No se pudo guardar", { description: result.error });
+        return;
+      }
+      toast.success("Configuración guardada");
+      flashSaved();
     });
   };
 
@@ -116,9 +121,9 @@ export function SettingsForm({ defaultValues }: { defaultValues: AppSettingsInpu
           </CardContent>
         </Card>
       ))}
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando..." : "Guardar cambios"}
-      </Button>
+      <SubmitButton pending={isPending} saved={saved}>
+        Guardar cambios
+      </SubmitButton>
     </form>
   );
 }

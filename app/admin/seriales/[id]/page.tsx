@@ -2,16 +2,23 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { SerialActions } from "./serial-actions";
 
 export const metadata: Metadata = { title: "Serial" };
 
-const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
-  AVAILABLE: "secondary",
-  ACTIVATED: "outline",
-  BLOCKED: "destructive",
-  VOID: "destructive",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  AVAILABLE: "info",
+  ACTIVATED: "success",
+  BLOCKED: "warning",
+  VOID: "danger",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  AVAILABLE: "Disponible",
+  ACTIVATED: "Activado",
+  BLOCKED: "Bloqueado",
+  VOID: "Anulado",
 };
 
 // Ver nota de tipos en app/admin/lotes/page.tsx.
@@ -54,7 +61,7 @@ export default async function SerialDetallePage({ params }: { params: Promise<{ 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="font-mono text-2xl font-bold tracking-tight text-blue-900">{serial.serial}</h1>
-          <Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{serial.status}</Badge>
+          <Badge variant={STATUS_VARIANT[serial.status] ?? "outline"}>{STATUS_LABEL[serial.status] ?? serial.status}</Badge>
         </div>
         <SerialActions
           id={serial.id}

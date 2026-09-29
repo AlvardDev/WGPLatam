@@ -70,11 +70,11 @@ export default async function GarantiasPage() {
               {warranties.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
-                    <Link href={`/admin/garantias/${w.id}`} className="font-medium hover:underline">
+                    <Link href={`/admin/garantias/${w.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                       {w.product_name}
                     </Link>
                     {w.voided_at && (
-                      <Badge variant="destructive" className="ml-2">
+                      <Badge variant="danger" className="ml-2">
                         Anulada
                       </Badge>
                     )}

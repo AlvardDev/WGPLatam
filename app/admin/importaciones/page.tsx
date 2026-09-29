@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/state/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -16,12 +16,20 @@ import {
 
 export const metadata: Metadata = { title: "Importaciones" };
 
-const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
-  STAGING: "outline",
-  COMMITTING: "outline",
-  COMPLETED: "secondary",
-  FAILED: "destructive",
-  CANCELLED: "destructive",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  STAGING: "info",
+  COMMITTING: "warning",
+  COMPLETED: "success",
+  FAILED: "danger",
+  CANCELLED: "neutral",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  STAGING: "Vista previa",
+  COMMITTING: "Importando",
+  COMPLETED: "Completada",
+  FAILED: "Falló",
+  CANCELLED: "Cancelada",
 };
 
 // Ver nota de tipos en app/admin/lotes/page.tsx: sin tipos generados de
@@ -83,7 +91,7 @@ export default async function ImportacionesPage() {
               {data.map((imp) => (
                 <TableRow key={imp.id}>
                   <TableCell>
-                    <Link href={`/admin/importaciones/${imp.id}`} className="text-sm font-medium hover:underline">
+                    <Link href={`/admin/importaciones/${imp.id}`} className="text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
                       {imp.file_name}
                     </Link>
                   </TableCell>
@@ -94,7 +102,7 @@ export default async function ImportacionesPage() {
                     {imp.committed_rows} / {imp.total_rows || "?"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{imp.status}</Badge>
+                    <Badge variant={STATUS_VARIANT[imp.status] ?? "outline"}>{STATUS_LABEL[imp.status] ?? imp.status}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(imp.created_at).toLocaleString("es")}

@@ -241,7 +241,7 @@ export function ActivationFlow() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle>{lookup.product_name}</CardTitle>
-              <Badge variant={lookup.status === "AVAILABLE" ? "secondary" : "destructive"}>
+              <Badge variant={lookup.status === "AVAILABLE" ? "success" : "danger"}>
                 {STATUS_LABEL[lookup.status]}
               </Badge>
             </div>

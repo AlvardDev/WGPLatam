@@ -80,7 +80,7 @@ export default async function TiendasPage({
                   <TableCell className="font-mono text-sm">{s.code}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium hover:underline">
+                      <Link href={`/admin/tiendas/${s.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                         {s.name}
                       </Link>
                       <EditStoreDialog store={s} />
@@ -89,7 +89,7 @@ export default async function TiendasPage({
                   <TableCell className="text-sm text-muted-foreground">{s.country_code}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{s.timezone}</TableCell>
                   <TableCell>
-                    <Badge variant={s.is_active ? "secondary" : "destructive"}>
+                    <Badge variant={s.is_active ? "success" : "danger"}>
                       {s.is_active ? "Activa" : "Inactiva"}
                     </Badge>
                   </TableCell>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, Eye } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,11 +32,11 @@ const STATUS_LABEL: Record<string, string> = {
   VOID: "Anulado",
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  AVAILABLE: "bg-slate-100 text-slate-600",
-  ACTIVATED: "bg-emerald-100 text-emerald-700",
-  BLOCKED: "bg-amber-100 text-amber-700",
-  VOID: "bg-red-100 text-red-700",
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  AVAILABLE: "info",
+  ACTIVATED: "success",
+  BLOCKED: "warning",
+  VOID: "danger",
 };
 
 function toCsv(rows: SerialRow[]) {
@@ -140,7 +140,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                   />
                 </TableCell>
                 <TableCell>
-                  <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium hover:underline">
+                  <Link href={`/admin/seriales/${s.id}`} className="font-mono text-sm font-medium text-blue-700 underline-offset-4 hover:underline">
                     {s.serial}
                   </Link>
                 </TableCell>
@@ -148,7 +148,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
                 <TableCell className="text-sm">{s.products?.name}</TableCell>
                 <TableCell className="font-mono text-sm text-muted-foreground">{s.lots?.code}</TableCell>
                 <TableCell>
-                  <Badge className={STATUS_BADGE[s.status] ?? ""} variant="outline">
+                  <Badge variant={STATUS_VARIANT[s.status] ?? "outline"}>
                     {STATUS_LABEL[s.status] ?? s.status}
                   </Badge>
                 </TableCell>

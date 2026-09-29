@@ -18,6 +18,12 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Estados: fondo suave + punto de color, para leer la tabla de un vistazo.
+        success: "status-dot border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+        warning: "status-dot border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300",
+        info: "status-dot border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
+        neutral: "status-dot border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400",
+        danger: "status-dot border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300",
       },
     },
     defaultVariants: {
@@ -47,5 +53,7 @@ function Badge({
     },
   })
 }
+
+export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>
 
 export { Badge, badgeVariants }

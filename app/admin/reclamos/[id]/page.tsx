@@ -2,12 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AssignClaimButton, CloseClaimButton, DecideClaimForm } from "./claim-actions";
 import { TechnicalReportForm } from "./technical-report-form";
 
 export const metadata: Metadata = { title: "Reclamo" };
+
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  OPEN: "info",
+  UNDER_REVIEW: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+  CLOSED: "neutral",
+};
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: "Abierto",
@@ -70,7 +78,7 @@ export default async function ReclamoDetallePage({ params }: { params: Promise<{
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-blue-900">{claim.reason}</h1>
-            <Badge>{STATUS_LABEL[claim.status] ?? claim.status}</Badge>
+            <Badge variant={STATUS_VARIANT[claim.status] ?? "secondary"}>{STATUS_LABEL[claim.status] ?? claim.status}</Badge>
           </div>
           <Link href={`/admin/garantias/${claim.warranty_id}`} className="text-sm text-muted-foreground hover:underline">
             {claim.warranties ? `${claim.warranties.product_name} · ${claim.warranties.serial}` : "Ver garantía"}

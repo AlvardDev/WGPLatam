@@ -68,7 +68,7 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
               {lot.products?.name} ({lot.products?.code})
             </p>
           </div>
-          <Badge variant={lot.is_active ? "secondary" : "destructive"}>
+          <Badge variant={lot.is_active ? "success" : "danger"}>
             {lot.is_active ? "Activo" : "Inactivo"}
           </Badge>
         </div>

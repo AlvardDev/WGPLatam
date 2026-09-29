@@ -184,7 +184,7 @@ export default async function AuditoriaPage({
                       {new Date(log.occurred_at).toLocaleString("es")}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{log.actor_role ?? "sistema"}</Badge>
+                      <Badge variant={log.actor_role ? "info" : "neutral"}>{log.actor_role ?? "sistema"}</Badge>
                       {log.actor_id ? (
                         <span className="ml-2 text-sm text-muted-foreground">
                           {actorNames.get(log.actor_id) ?? log.actor_id}

@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { totpCodeSchema, type TotpCodeInput } from "@/lib/validation/mfa";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { OtpInput } from "@/components/auth/otp-input";
 
 type Mode = "loading" | "enroll" | "challenge" | "error";
 
@@ -33,11 +33,11 @@ export function MfaGate() {
   const [isPending, startTransition] = useTransition();
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<TotpCodeInput>({ resolver: zodResolver(totpCodeSchema) });
+  } = useForm<TotpCodeInput>({ resolver: zodResolver(totpCodeSchema), defaultValues: { code: "" } });
 
   useEffect(() => {
     let cancelled = false;
@@ -146,13 +146,18 @@ export function MfaGate() {
         <FieldGroup>
           <Field data-invalid={!!errors.code}>
             <FieldLabel htmlFor="code">Código de 6 dígitos</FieldLabel>
-            <Input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              className="h-11"
-              {...register("code")}
+            <Controller
+              control={control}
+              name="code"
+              render={({ field }) => (
+                <OtpInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  onComplete={() => void handleSubmit(onSubmit)()}
+                  disabled={isPending}
+                  invalid={!!errors.code}
+                />
+              )}
             />
             <FieldError errors={[errors.code]} />
           </Field>

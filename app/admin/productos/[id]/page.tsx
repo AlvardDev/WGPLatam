@@ -33,7 +33,7 @@ export default async function ProductoDetallePage({
             <h1 className="text-2xl font-bold tracking-tight text-blue-900">{product.name}</h1>
             <p className="font-mono text-sm text-muted-foreground">{product.code}</p>
           </div>
-          <Badge variant={product.is_active ? "secondary" : "destructive"}>
+          <Badge variant={product.is_active ? "success" : "danger"}>
             {product.is_active ? "Activo" : "Inactivo"}
           </Badge>
         </div>

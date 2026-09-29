@@ -96,7 +96,7 @@ export default async function ProductosPage({
                   </TableCell>
                   <TableCell className="font-mono text-sm">{p.code}</TableCell>
                   <TableCell>
-                    <Link href={`/admin/productos/${p.id}`} className="font-medium hover:underline">
+                    <Link href={`/admin/productos/${p.id}`} className="font-medium text-blue-700 underline-offset-4 hover:underline">
                       {p.name}
                     </Link>
                   </TableCell>
@@ -104,7 +104,7 @@ export default async function ProductosPage({
                     {p.default_warranty_days} días
                   </TableCell>
                   <TableCell>
-                    <Badge variant={p.is_active ? "secondary" : "destructive"}>
+                    <Badge variant={p.is_active ? "success" : "danger"}>
                       {p.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </TableCell>

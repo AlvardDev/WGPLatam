@@ -9,13 +9,14 @@ import {
   notificationSettingsSchema,
   type NotificationSettingsInput,
 } from "@/lib/validation/notification-settings";
-import { Button } from "@/components/ui/button";
+import { SubmitButton, useFlash } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 
 export function NotificationSettingsForm({ defaultValues }: { defaultValues: NotificationSettingsInput }) {
   const [isPending, startTransition] = useTransition();
+  const [saved, flashSaved] = useFlash();
   const {
     register,
     handleSubmit,
@@ -28,8 +29,12 @@ export function NotificationSettingsForm({ defaultValues }: { defaultValues: Not
   const onSubmit = (values: NotificationSettingsInput) => {
     startTransition(async () => {
       const result = await updateNotificationSettings(values);
-      if (result.error) toast.error(result.error);
-      else toast.success("Configuración guardada.");
+      if (result.error) {
+        toast.error("No se pudo guardar", { description: result.error });
+        return;
+      }
+      toast.success("Configuración guardada");
+      flashSaved();
     });
   };
 
@@ -72,9 +77,9 @@ export function NotificationSettingsForm({ defaultValues }: { defaultValues: Not
               <FieldError errors={[errors.adminNotificationEmails]} />
               <FieldDescription>Reciben un correo cada vez que se activa una garantía.</FieldDescription>
             </Field>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Guardando..." : "Guardar cambios"}
-            </Button>
+            <SubmitButton pending={isPending} saved={saved}>
+              Guardar cambios
+            </SubmitButton>
           </FieldGroup>
         </CardContent>
       </Card>
