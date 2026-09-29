@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CreateProductDialog } from "./create-product-dialog";
+import { productPhotoUrl } from "@/lib/image/product-photos";
 
 export const metadata: Metadata = { title: "Productos" };
 
@@ -31,7 +32,7 @@ export default async function ProductosPage({
 
   let query = supabase
     .from("products")
-    .select("id, code, name, default_warranty_days, is_active")
+    .select("id, code, name, default_warranty_days, is_active, photo_path")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -69,6 +70,9 @@ export default async function ProductosPage({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-14">
+                  <span className="sr-only">Foto</span>
+                </TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Garantía</TableHead>
@@ -78,6 +82,18 @@ export default async function ProductosPage({
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
+                  <TableCell>
+                    {p.photo_path ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={productPhotoUrl(p.photo_path)}
+                        alt=""
+                        className="size-8 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="size-8 rounded border border-dashed" />
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-sm">{p.code}</TableCell>
                   <TableCell>
                     <Link href={`/admin/productos/${p.id}`} className="font-medium hover:underline">

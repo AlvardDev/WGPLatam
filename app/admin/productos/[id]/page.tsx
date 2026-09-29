@@ -18,7 +18,7 @@ export default async function ProductoDetallePage({
   const { data: product, error } = await supabase
     .from("products")
     .select(
-      "id, code, name, description, how_it_works, warranty_conditions, warranty_exclusions, default_warranty_days, is_active",
+      "id, code, name, description, how_it_works, warranty_conditions, warranty_exclusions, default_warranty_days, is_active, photo_path",
     )
     .eq("id", id)
     .single();
@@ -56,6 +56,7 @@ export default async function ProductoDetallePage({
               warrantyConditions: product.warranty_conditions,
               warrantyExclusions: (product.warranty_exclusions ?? []).join("\n"),
               defaultWarrantyDays: product.default_warranty_days,
+              photoPath: product.photo_path,
             }}
           />
         </CardContent>

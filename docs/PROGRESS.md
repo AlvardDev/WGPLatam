@@ -2,6 +2,65 @@
 
 > Se actualiza al cerrar cada fase con el formato del checkpoint. Lo más reciente va arriba.
 
+## Foto de producto con compresión automática (2026-09-29)
+
+Pedido explícito del usuario: poder subirle una foto a un producto desde el panel, comprimida
+automáticamente. Primer uso real de Supabase Storage en el repo — el único bucket que se había
+documentado hasta ahora (`branding`, logo de la empresa, Fase 1) nunca se llegó a implementar
+(`docs/PROGRESS.md`, Fase 6: "DEFERRED"), así que no había ningún patrón existente de bucket/RLS
+de Storage para copiar; se estableció desde cero.
+
+- Migración nueva `20260929000000_product_photos.sql`: bucket `product-photos` (**público de
+  lectura** — son fotos de catálogo, no dato sensible del negocio, mismo criterio que
+  `products_seller_select` ya usa para dejar ver el catálogo activo completo a cualquier
+  vendedor; límite de 5 MB y solo `image/jpeg|png|webp` como segunda capa de defensa, nunca
+  confiar solo en la compresión del cliente), columna `products.photo_path` (nullable, guarda el
+  nombre del objeto dentro del bucket, no una URL completa), y 4 políticas RLS sobre
+  `storage.objects` (insert/update/delete solo admin vía `private.is_admin()`, select para
+  cualquier `authenticated`). Nada de RPC: `products` ya se escribe directo por RLS
+  (`docs/ARCHITECTURE.md`, "El catálogo... se escribe directo con políticas solo-admin"), así que
+  `photo_path` es una columna más en ese mismo flujo (`createProduct`/`updateProduct`,
+  `lib/actions/products.ts`, sin RPC nuevo).
+- **Compresión 100% en el navegador, sin librería nueva**: `lib/image/compress-image.ts` usa
+  `createImageBitmap` + `<canvas>` (Canvas API nativa) para redimensionar a un máximo de 1600px
+  de lado y reexportar como JPEG calidad 0.8 antes de subir — una foto de celular que puede pesar
+  varios MB nunca llega a la red tal cual. Se evaluó agregar `browser-image-compression` (u
+  otra similar) pero no hacía falta: el navegador ya tiene todo lo necesario, y el proyecto evita
+  dependencias nuevas cuando no son imprescindibles (`CLAUDE.md`, "No hacer" → "introducir
+  servicios externos innecesarios"). Tampoco se pudo verificar instalando nada nuevo de todas
+  formas: `npm install` sigue bloqueado en este entorno (política de red, `cdn.sheetjs.com`).
+- Subida **directa navegador → Supabase Storage** (`app/admin/productos/product-photo-field.tsx`,
+  `lib/supabase/client.ts`), no a través de una Server Action — mismo criterio ya documentado en
+  `lib/import/upload.ts` para el import masivo (límite de 8s/tamaño de body de las Server
+  Actions/Vercel no es el camino para subir archivos). El nombre del objeto es un
+  `crypto.randomUUID()` independiente del id del producto (no existe todavía al crear uno nuevo),
+  así que la foto se puede subir *antes* de guardar el producto y el path viaja en el mismo
+  submit del formulario (`ProductForm`, ahora con `setValue`/`watch` de `react-hook-form` para el
+  campo controlado).
+- Frontend: `ProductPhotoField` (subir/cambiar/quitar, con miniatura de 80px y estado
+  "Subiendo..."), integrado en `product-form.tsx` (create y edit). Miniatura de 32px agregada
+  también en el listado (`/admin/productos`) y foto visible en el formulario de edición del
+  detalle (`/admin/productos/[id]`). URL pública armada a mano
+  (`lib/image/product-photos.ts`, `productPhotoUrl()`) a partir de las mismas env vars públicas
+  que ya usa `lib/supabase/client.ts` — no hace falta instanciar un cliente ni hacer una llamada
+  de red solo para construir la URL, y sirve igual en Server Components (listado, detalle) que en
+  Client Components (el campo de subida).
+- **Riesgo aceptado, no resuelto en esta sesión**: reemplazar o quitar una foto no borra el
+  objeto viejo del bucket (queda huérfano) — se decidió no borrar automáticamente desde el campo
+  del formulario porque "Quitar foto" es un cambio pendiente hasta que se guarde el formulario; si
+  se borrara ahí mismo y el usuario cierra el diálogo sin guardar, quedaría una referencia rota.
+  Resolverlo bien (borrar el objeto viejo recién cuando el submit success) es trabajo futuro, no
+  bloqueante para esta fase — el costo es unos KB de Storage por fotos reemplazadas, no una fuga
+  de datos ni un bug funcional.
+- **Sin verificar contra el proyecto real ni con pgTAP**: mismo bloqueo de esta sesión, el MCP de
+  Supabase sigue desconectado (`ERR_PROXY_TUNNEL`) — la migración queda commiteada pero sin
+  aplicar. No hay pgTAP nuevo para las 4 políticas de `storage.objects` (gap real, no solo falta
+  de tiempo de ejecución — no se escribió el archivo). `tsc`/`lint`/`vitest`/`build` tampoco se
+  pudieron correr (`npm install` bloqueado). `lib/validation/products.test.ts` se actualizó a
+  mano para el campo `photoPath` nuevo (2 casos nuevos) pero no se corrió.
+- Docs vivas actualizadas: `ARCHITECTURE.md` (diagrama de Storage), `DATABASE.md` (fila de
+  `product-photos` en la tabla de permisos RLS).
+
 ## Confirmación al crear serial sin código de barras + causa raíz encontrada (2026-09-28)
 
 Reporte del usuario: al crear un serial manualmente, el campo de código de barras dice

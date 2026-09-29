@@ -13,6 +13,10 @@ export const productSchema = z.object({
   // Sin z.coerce: react-hook-form convierte con valueAsNumber (mismo patrón
   // de lib/validation/app-settings.ts, tras el problema real de Fase 1).
   defaultWarrantyDays: z.number().int().positive("Debe ser mayor que 0"),
+  // Path dentro del bucket "product-photos" (Storage) — nunca lo escribe el
+  // usuario a mano, lo fija product-photo-field.tsx después de subir. null =
+  // sin foto.
+  photoPath: z.string().trim().min(1).nullable(),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

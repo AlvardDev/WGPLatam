@@ -10,10 +10,19 @@ describe("productSchema", () => {
     warrantyConditions: "",
     warrantyExclusions: "",
     defaultWarrantyDays: 365,
+    photoPath: null,
   };
 
   it("accepts a valid product", () => {
     expect(productSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts a product with a photo path", () => {
+    expect(productSchema.safeParse({ ...valid, photoPath: "abc123.jpg" }).success).toBe(true);
+  });
+
+  it("rejects an empty (non-null) photo path", () => {
+    expect(productSchema.safeParse({ ...valid, photoPath: "" }).success).toBe(false);
   });
 
   it("rejects an empty code", () => {
