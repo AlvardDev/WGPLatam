@@ -13,6 +13,7 @@ import {
   type ProductInput,
   type ProductUpdateInput,
 } from "@/lib/validation/products";
+import { ProductPhotoField } from "./product-photo-field";
 
 type Props =
   | {
@@ -35,11 +36,21 @@ export function ProductForm(props: Props) {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ProductInput | ProductUpdateInput>({
     resolver: zodResolver(isCreate ? productSchema : productUpdateSchema),
     defaultValues: isCreate
-      ? { code: "", name: "", description: "", howItWorks: "", warrantyConditions: "", warrantyExclusions: "" }
+      ? {
+          code: "",
+          name: "",
+          description: "",
+          howItWorks: "",
+          warrantyConditions: "",
+          warrantyExclusions: "",
+          photoPath: null,
+        }
       : props.defaultValues,
   });
 
@@ -76,6 +87,13 @@ export function ProductForm(props: Props) {
           <FieldLabel htmlFor="name">Nombre</FieldLabel>
           <Input id="name" {...register("name")} />
           <FieldError errors={[errors.name]} />
+        </Field>
+        <Field>
+          <FieldLabel>Foto</FieldLabel>
+          <ProductPhotoField
+            value={watch("photoPath")}
+            onChange={(path) => setValue("photoPath", path, { shouldDirty: true })}
+          />
         </Field>
         <Field data-invalid={!!errors.defaultWarrantyDays}>
           <FieldLabel htmlFor="defaultWarrantyDays">Duración de garantía (días)</FieldLabel>

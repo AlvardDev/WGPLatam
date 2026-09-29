@@ -23,7 +23,12 @@ Supabase
   ├─ Postgres: tablas + RLS + funciones RPC (autoridad de negocio y de seguridad)
   ├─ Auth: email/password, invitaciones, recuperación, MFA TOTP
   ├─ Edge Function dispatch-notifications (clave del proveedor de email solo aquí) ← pg_cron cada minuto
-  └─ Storage: bucket `branding` (logo de la empresa). Nada más en el MVP.
+  └─ Storage: bucket `branding` (logo de la empresa, planeado desde F1, todavía sin implementar —
+     ver docs/PROGRESS.md, F6 "DEFERRED"). Bucket `product-photos` (foto de producto, Fase 9,
+     2026-09-29) — el primero de los dos que realmente se implementó: público de lectura
+     (fotos de catálogo, no dato sensible), escritura solo admin vía RLS sobre `storage.objects`.
+     Compresión 100% en el navegador antes de subir (Canvas API nativa, sin librería nueva) —
+     ver `lib/image/compress-image.ts`.
 ```
 
 ## Principios

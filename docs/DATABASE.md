@@ -85,6 +85,7 @@ Se consultan en tabla (no claims del JWT) para que desactivar surta efecto inmed
 | `audit_logs`, `notification_settings` | SELECT | sin acceso |
 | `app_settings` | UPDATE | SELECT (campos públicos únicamente; ver arriba) |
 | Storage `branding` | escribir | leer |
+| Storage `product-photos` | escribir (2026-09-29, ver más abajo) | leer (bucket público, no hace falta ni sesión) |
 
 ## RPC críticos
 

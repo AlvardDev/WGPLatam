@@ -20,6 +20,7 @@ function toRow(v: ProductUpdateInput) {
       .map((s) => s.trim())
       .filter(Boolean),
     default_warranty_days: v.defaultWarrantyDays,
+    photo_path: v.photoPath,
   };
 }
 
