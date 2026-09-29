@@ -63,7 +63,7 @@ export default async function TiendasPage({
           description={q ? `Nada coincide con "${q}".` : "Crea la primera tienda para poder invitar vendedores."}
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

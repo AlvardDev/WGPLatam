@@ -47,7 +47,7 @@ export default async function TiendaPage() {
           action={<Button render={<Link href="/tienda/activar">Activar garantía</Link>} />}
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

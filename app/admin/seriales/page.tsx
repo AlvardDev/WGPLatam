@@ -149,14 +149,14 @@ export default async function SerialesPage({
         <KpiCard icon={Lock} label="Bloqueados / Anulados" value={(bloqueados ?? 0).toLocaleString("es")} alert={(bloqueados ?? 0) > 0} />
       </div>
 
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
+      <form className="flex flex-wrap items-end gap-3 rounded-2xl bg-card p-4 shadow-soft">
         <div className="w-full max-w-xs">
           <Input type="search" name="q" placeholder="Buscar por serial o código de barras..." defaultValue={q ?? ""} />
         </div>
         <select
           name="producto"
           defaultValue={producto ?? ""}
-          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los productos</option>
           {(products ?? []).map((p) => (
@@ -168,7 +168,7 @@ export default async function SerialesPage({
         <select
           name="lote"
           defaultValue={lote ?? ""}
-          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los lotes</option>
           {filteredLots.map((l) => (
@@ -180,7 +180,7 @@ export default async function SerialesPage({
         <select
           name="status"
           defaultValue={status ?? ""}
-          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Todos los estados</option>
           <option value="AVAILABLE">Disponible</option>
@@ -191,7 +191,7 @@ export default async function SerialesPage({
         <select
           name="barcode"
           defaultValue={barcode ?? ""}
-          className="h-8 rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">Con o sin código de barras</option>
           <option value="falta">Sin código de barras</option>

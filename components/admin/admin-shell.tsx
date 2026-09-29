@@ -67,7 +67,7 @@ export function AdminShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-16 items-center gap-3 border-b bg-background px-4 md:px-6">
+          <header className="flex h-16 items-center gap-3 bg-background px-4 md:px-6">
             <div className="md:hidden">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger
@@ -105,7 +105,7 @@ export function AdminShell({
             </div>
           </header>
 
-          <div className="border-b bg-background px-4 pb-3 md:hidden">
+          <div className="bg-background px-4 pb-3 md:hidden">
             <AdminSearchBar />
           </div>
 

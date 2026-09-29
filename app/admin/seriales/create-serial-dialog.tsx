@@ -121,7 +121,7 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
                   <FieldLabel htmlFor="productId">Producto</FieldLabel>
                   <select
                     id="productId"
-                    className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     {...register("productId")}
                   >
                     <option value="">Selecciona un producto</option>
@@ -138,7 +138,7 @@ export function CreateSerialDialog({ products, lots }: { products: Product[]; lo
                   <select
                     id="lotId"
                     disabled={!selectedProductId}
-                    className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                    className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
                     {...register("lotId")}
                   >
                     <option value="">

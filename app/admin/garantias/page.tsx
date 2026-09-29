@@ -54,7 +54,7 @@ export default async function GarantiasPage() {
       {!warranties || warranties.length === 0 ? (
         <EmptyState icon={ShieldCheck} title="Todavía no hay garantías activadas" />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

@@ -90,7 +90,7 @@ export default async function ImportacionDetallePage({ params }: { params: Promi
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-2xl bg-card p-4 shadow-soft">
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
     </div>

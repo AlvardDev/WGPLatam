@@ -15,7 +15,7 @@ export default function AdminLoading() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 rounded-xl border bg-white p-5">
+          <div key={i} className="flex items-center gap-4 rounded-2xl bg-card p-5 shadow-soft">
             <Skeleton className="size-11 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-3 w-20" />
@@ -25,7 +25,7 @@ export default function AdminLoading() {
         ))}
       </div>
 
-      <div className="space-y-3 rounded-lg border bg-white p-4">
+      <div className="space-y-3 rounded-2xl bg-card p-4 shadow-soft">
         <Skeleton className="h-5 w-32" />
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-full" />

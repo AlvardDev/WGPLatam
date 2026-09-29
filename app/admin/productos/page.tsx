@@ -66,7 +66,7 @@ export default async function ProductosPage({
           description={q ? `Nada coincide con "${q}".` : "Crea el primer producto para empezar."}
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

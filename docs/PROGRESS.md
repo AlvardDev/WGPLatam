@@ -2234,3 +2234,8 @@ timestamp de aplicación (no el del nombre de archivo).
 - Verificado: `tsc` OK, vitest 100/100 (+1 test de días), lint sin errores nuevos (los 2 errores
   existentes están en `onboarding-spotlight.tsx`, previos). Sin verificación visual de las
   pantallas admin (requieren sesión + MFA).
+- **Estética suave (2026-09-29, referencia: Brixolimp)**: tarjetas y contenedores de tablas sin
+  borde, con `shadow-soft` (utility en `globals.css`) y `rounded-2xl`; `--border` más claro;
+  cabecera de tabla con fondo gris claro en mayúsculas pequeñas y filas con divisor tenue;
+  inputs/selects/textareas con relleno gris claro que pasa a blanco al enfocar; sin líneas entre
+  header, buscador y contenido en los layouts admin y tienda (fondo `slate-50`).

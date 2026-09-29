@@ -47,7 +47,7 @@ export function CorrectionHistory({
   return (
     <ul className="space-y-3">
       {corrections.map((c) => (
-        <li key={c.id} className="rounded-md border p-3 text-sm">
+        <li key={c.id} className="rounded-xl bg-muted/50 p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{FIELD_LABELS[c.field] ?? c.field}</span>
             <Badge variant={STATUS_VARIANT[c.status] ?? "secondary"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>

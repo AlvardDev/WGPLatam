@@ -50,7 +50,7 @@ export function ClaimHistory({
   return (
     <ul className="space-y-3">
       {claims.map((c) => (
-        <li key={c.id} className="rounded-md border p-3 text-sm">
+        <li key={c.id} className="rounded-xl bg-muted/50 p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{c.reason}</span>
             <div className="flex items-center gap-2">

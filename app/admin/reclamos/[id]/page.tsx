@@ -174,7 +174,7 @@ export default async function ReclamoDetallePage({ params }: { params: Promise<{
           ) : (
             <ul className="space-y-3">
               {reports.map((r) => (
-                <li key={r.id} className="rounded-md border p-3 text-sm">
+                <li key={r.id} className="rounded-xl bg-muted/50 p-3 text-sm">
                   <p className="text-xs text-muted-foreground">{new Date(r.reported_at).toLocaleString("es")}</p>
                   <p className="mt-1">
                     <span className="font-medium">Diagnóstico:</span> {r.diagnosis}

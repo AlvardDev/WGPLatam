@@ -68,7 +68,7 @@ export function ImportResume({ importId, status }: { importId: string; status: s
 
   if (status === "STAGING") {
     return (
-      <div className="max-w-md space-y-3 rounded-lg border p-4">
+      <div className="max-w-md space-y-3 rounded-2xl bg-card p-4 shadow-soft">
         <p className="text-sm font-medium">Esta importación quedó en preparación (STAGING).</p>
         <p className="text-sm text-muted-foreground">
           Selecciona de nuevo el mismo archivo para continuar donde se quedó — no se duplica lo ya subido.
@@ -88,7 +88,7 @@ export function ImportResume({ importId, status }: { importId: string; status: s
   }
 
   return (
-    <div className="max-w-md space-y-3 rounded-lg border p-4">
+    <div className="max-w-md space-y-3 rounded-2xl bg-card p-4 shadow-soft">
       <p className="text-sm font-medium">
         {status === "FAILED"
           ? "Esta importación tuvo un error inesperado a mitad de proceso."

@@ -335,7 +335,7 @@ export default async function AdminPage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
+                  <tr className="text-left text-xs text-muted-foreground">
                     <th className="pb-2 font-medium">Serial</th>
                     <th className="pb-2 font-medium">Producto</th>
                     <th className="pb-2 font-medium">Cliente</th>
@@ -347,7 +347,7 @@ export default async function AdminPage() {
                   {ultimasGarantias.map((w) => {
                     const statusLabel = warrantyStatusLabel(w);
                     return (
-                      <tr key={w.id} className="border-b last:border-0">
+                      <tr key={w.id} className="border-b border-border/60 last:border-0">
                         <td className="py-2">
                           <Link href={`/admin/garantias/${w.id}`} className="font-mono text-xs hover:underline">
                             {w.serial}
@@ -406,7 +406,7 @@ export default async function AdminPage() {
             <Link
               key={a.href}
               href={a.href}
-              className="flex items-center gap-3 rounded-xl border bg-white p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/50"
+              className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-soft transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-blue-50/60"
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
                 <a.icon className="size-5" />

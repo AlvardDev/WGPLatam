@@ -34,7 +34,7 @@ export function AuditDetailDialog({
           {oldData ? (
             <div>
               <p className="mb-1 font-medium text-muted-foreground">Antes</p>
-              <pre className="max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs">
+              <pre className="max-h-48 overflow-auto rounded-lg bg-muted/60 p-2 text-xs">
                 {JSON.stringify(oldData, null, 2)}
               </pre>
             </div>
@@ -42,7 +42,7 @@ export function AuditDetailDialog({
           {newData ? (
             <div>
               <p className="mb-1 font-medium text-muted-foreground">Después</p>
-              <pre className="max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs">
+              <pre className="max-h-48 overflow-auto rounded-lg bg-muted/60 p-2 text-xs">
                 {JSON.stringify(newData, null, 2)}
               </pre>
             </div>
@@ -50,7 +50,7 @@ export function AuditDetailDialog({
           {hasMetadata ? (
             <div>
               <p className="mb-1 font-medium text-muted-foreground">Metadata</p>
-              <pre className="max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs">
+              <pre className="max-h-48 overflow-auto rounded-lg bg-muted/60 p-2 text-xs">
                 {JSON.stringify(metadata, null, 2)}
               </pre>
             </div>

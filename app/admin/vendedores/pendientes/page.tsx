@@ -28,7 +28,7 @@ export default async function VendedoresPendientesPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-medium">Solicitudes de restablecer contraseña</h2>
         {resets.data && resets.data.length > 0 ? (
-          <div className="rounded-lg border">
+          <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
             <Table>
               <TableHeader>
                 <TableRow>

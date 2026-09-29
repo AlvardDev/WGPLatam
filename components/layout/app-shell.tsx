@@ -56,8 +56,8 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 shrink-0 border-r bg-background md:flex md:flex-col">
-        <div className="flex h-14 items-center gap-2 border-b px-4">
+      <aside className="hidden w-64 shrink-0 bg-background shadow-soft md:flex md:flex-col">
+        <div className="flex h-14 items-center gap-2 px-4">
           <ShieldCheck className="size-5 text-primary" />
           <span className="font-semibold">Garantías</span>
         </div>
@@ -67,7 +67,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between gap-3 border-b bg-background px-4">
+        <header className="flex h-14 items-center justify-between gap-3 bg-background px-4">
           <div className="flex items-center gap-2 md:hidden">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger
@@ -78,7 +78,7 @@ export function AppShell({
                 }
               />
               <SheetContent side="left" className="w-64 p-0">
-                <SheetTitle className="flex h-14 items-center gap-2 border-b px-4 text-base">
+                <SheetTitle className="flex h-14 items-center gap-2 px-4 text-base">
                   <ShieldCheck className="size-5 text-primary" />
                   Garantías
                 </SheetTitle>
@@ -98,7 +98,7 @@ export function AppShell({
           <UserMenu fullName={fullName} roleLabel={ROLE_LABEL[role]} />
         </header>
 
-        <main className="flex-1 bg-muted/20 p-4 md:p-6">{children}</main>
+        <main className="flex-1 bg-slate-50 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

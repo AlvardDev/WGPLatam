@@ -103,7 +103,7 @@ export function SerialesTable({ serials }: { serials: SerialRow[] }) {
         </Button>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
         <Table>
           <TableHeader>
             <TableRow>

@@ -157,7 +157,7 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
               id="lotId"
               value={lotId}
               onChange={(e) => setLotId(e.target.value)}
-              className="h-8 w-full rounded-md border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <option value="">Selecciona un lote</option>
               {lots.map((l) => (
@@ -222,23 +222,23 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
     return (
       <div className="max-w-2xl space-y-6">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <div className="rounded-lg border p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-soft">
             <div className="text-2xl font-semibold">{counts.total}</div>
             <div className="text-sm text-muted-foreground">Total</div>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-soft">
             <div className="text-2xl font-semibold text-emerald-600">{counts.valid}</div>
             <div className="text-sm text-muted-foreground">Válidas</div>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-soft">
             <div className="text-2xl font-semibold text-amber-600">{counts.duplicate}</div>
             <div className="text-sm text-muted-foreground">Duplicadas</div>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-soft">
             <div className="text-2xl font-semibold text-destructive">{counts.error}</div>
             <div className="text-sm text-muted-foreground">Con error</div>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-soft">
             <div className="text-2xl font-semibold text-amber-600">{counts.missingBarcode}</div>
             <div className="text-sm text-muted-foreground">Sin código de barras</div>
           </div>
@@ -247,7 +247,7 @@ export function ImportWizard({ lots }: { lots: Lot[] }) {
         {errorRows.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Filas que no se importarán</p>
-            <div className="rounded-lg border">
+            <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
               <Table>
                 <TableHeader>
                   <TableRow>

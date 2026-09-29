@@ -74,7 +74,7 @@ export default async function AdministradoresPage({
           description={q ? "Nada coincide con ese filtro." : "Invita a la primera cuenta admin."}
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

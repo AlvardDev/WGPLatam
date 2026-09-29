@@ -76,7 +76,7 @@ export default async function ImportacionesPage() {
           description="Crea una importación para cargar seriales masivamente en un lote."
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

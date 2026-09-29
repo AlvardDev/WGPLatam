@@ -63,7 +63,7 @@ export default async function ReclamosPage() {
       {!claims || claims.length === 0 ? (
         <EmptyState icon={AlertTriangle} title="Todavía no hay reclamos abiertos" />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-soft">
           <Table>
             <TableHeader>
               <TableRow>

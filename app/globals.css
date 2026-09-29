@@ -68,8 +68,10 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* Bordes suaves (estética tipo Brixolimp): líneas casi invisibles, la
+     separación la dan el fondo gris claro y las sombras. */
+  --border: oklch(0.948 0.004 264);
+  --input: oklch(0.915 0.006 264);
   --ring: oklch(0.623 0.214 259.815);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -175,4 +177,9 @@
     background-color: currentColor;
     flex-shrink: 0;
   }
+}
+
+/* Sombra suave de tarjetas y contenedores (en vez de borde). */
+@utility shadow-soft {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px -8px rgb(15 23 42 / 0.08);
 }
